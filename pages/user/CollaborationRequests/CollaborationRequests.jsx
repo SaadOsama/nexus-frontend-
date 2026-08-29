@@ -4,7 +4,7 @@ import {
   useGetCollaborationRequests,
   useAcceptCollaboration,
   useDismissCollaboration,
-} from '@/api/hooks/useCollaboration';
+} from '@/api/client/collaborations';
 import CollaborationRequestCard from './CollaborationRequestCard.jsx';
 import CollaborationRequestDetailModal from './CollaborationRequestDetailModal.jsx';
 

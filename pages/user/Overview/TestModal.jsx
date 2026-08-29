@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import PublishProjectModal from './PublishProjectModal';
+import OverviewPublishModal from './OverviewPublishModal';
 
 const TestModal = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,7 +28,7 @@ const TestModal = () => {
       </div>
 
       {/* Modal Component */}
-      <PublishProjectModal
+      <OverviewPublishModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
 import ProjectGrid from '../../../src/components/Cards/ProjectGrid';
-import PublishProjectModal from './PublishProjectModal';
+import OverviewPublishModal from './OverviewPublishModal';
 import ProjectDetailCard from '../../../src/components/shared/ProjectDetailCard';
 
 const Overview = () => {
@@ -28,7 +28,7 @@ const Overview = () => {
           onBackToProjects={() => setSelectedProject(null)}
         />
 
-        <PublishProjectModal
+        <OverviewPublishModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
         />
@@ -109,7 +109,7 @@ const Overview = () => {
         <ProjectGrid onSelectProject={(project) => setSelectedProject(project)} />
       </div>
 
-      <PublishProjectModal
+      <OverviewPublishModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
       />

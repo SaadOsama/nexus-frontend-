@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle2, X, Lock } from 'lucide-react';
-import { useSendCollaborationRequest } from "@/api/hooks/useCollaboration";
+import { useSendCollaborationRequest } from "@/api/client/collaborations";
 
 export default function CollaborationRequestModal({ isOpen, onClose, project, onRequestSent }) {
   const [email, setEmail] = useState('');

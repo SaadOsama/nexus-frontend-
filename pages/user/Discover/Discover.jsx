@@ -4,7 +4,7 @@ import { Plus, Search } from 'lucide-react';
 import ProjectGrid from '@/components/Cards/ProjectGrid';
 import ProjectDetailCard from '@/components/shared/ProjectDetailCard';
 import FilterDropdown from '@/components/Cards/FilterDropdown';
-import PublishProjectModal from '../Overview/PublishProjectModal';
+import OverviewPublishModal from '../Overview/OverviewPublishModal';
 
 const Discover = () => {
   const [selectedProject, setSelectedProject] = useState(null);
@@ -116,7 +116,7 @@ const Discover = () => {
       />
 
       {/* Publish Project Modal */}
-      <PublishProjectModal
+      <OverviewPublishModal
         isOpen={isPublishModalOpen}
         onClose={() => setIsPublishModalOpen(false)}
         onProjectPublished={() => setRefreshTrigger((prev) => prev + 1)}

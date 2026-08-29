@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bookmark, Loader2 } from 'lucide-react';
 import ProjectDetailCard from '../../../src/components/shared/ProjectDetailCard';
-import { useGetProjects } from "../../../src/api/hooks/useProjects";
+import { useGetProjects } from "@/api/client/projects";
 
 export default function SavedProjects() {
   const [selectedProject, setSelectedProject] = useState(null);

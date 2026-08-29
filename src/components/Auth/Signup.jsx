@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 // ✅ Fix (goes up 2 levels from src/components/Auth/ to reach root api)
-import { useRegister } from "../../api/hooks/useAuth";
+import { useRegister } from "@/api/client/auth";
 
 export default function SignUp() {
   const navigate = useNavigate();

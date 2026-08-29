@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import PublishProjectModal from "./PublishProjectModal.jsx";
-import ProjectCard from "@/components/Cards/ProjectCard.jsx";
+import MyProjectsPublishModal from "./MyProjectsPublishModal.jsx";
+import DashboardProjectCard from "@/components/Cards/DashboardProjectCard.jsx";
 import ProjectDetailCard from "@/components/shared/ProjectDetailCard";
 import { Sparkles, Loader2 } from "lucide-react";
-import { useGetMyProjects } from "@/api/hooks/useProjects";
+import { useGetMyProjects } from "@/api/client/projects";
 
 // Requirement #1 / #3: this page must only ever show the logged-in user's
 // own projects. useGetMyProjects hits GET /api/projects/mine, which the
@@ -59,7 +59,7 @@ export default function ProjectList() {
         ) : projects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
             {projects.map((project) => (
-              <ProjectCard key={project.id} project={project} onClick={() => setSelectedProject(project)} />
+              <DashboardProjectCard key={project.id} project={project} onClick={() => setSelectedProject(project)} />
             ))}
           </div>
         ) : (
@@ -82,7 +82,7 @@ export default function ProjectList() {
         )}
       </div>
 
-      <PublishProjectModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <MyProjectsPublishModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }

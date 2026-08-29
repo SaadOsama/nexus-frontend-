@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, User, ShieldCheck, ArrowRight } from "lucide-react";
-import { usePublishProject } from "@/api/hooks/useProjects";
+import { usePublishProject } from "@/api/client/projects";
 
 
 // ==========================================

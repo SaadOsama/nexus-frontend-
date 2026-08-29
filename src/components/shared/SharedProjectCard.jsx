@@ -1,8 +1,7 @@
-import ProjectCard from './ProjectCard';
 import React, { useState } from 'react';
 import { Bookmark } from 'lucide-react';
 
-export const ProjectCard = ({ project }) => {
+export const SharedProjectCard = ({ project }) => {
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   return (
@@ -59,4 +58,4 @@ export const ProjectCard = ({ project }) => {
   );
 };
 
-export default ProjectCard;
+export default SharedProjectCard;
