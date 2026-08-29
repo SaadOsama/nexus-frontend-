@@ -109,7 +109,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   
   // Redux token/user state check (Optional, safely handles non-auth users)
-  const { isAuthenticated, user } = useSelector((state) => state.auth || {});
+  const { isAuthenticated, user } = useSelector((state) => state.user || {});
 
   const requireAuth = () => {
     if (isAuthenticated) {
