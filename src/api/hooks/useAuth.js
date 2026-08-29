@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import api from "../axios";
 import { API_ENDPOINTS } from "../endpoint";
 import { loginSuccess } from "../../redux/slices/userSlices";
+
 // IMPORTANT PATTERN used in every hook below:
 // `useMutation({ ...options, onSuccess: (…) => { <our logic>; options.onSuccess?.(…) } })`
 // Previously these hooks did `useMutation({ onSuccess: ourLogic, ...options })`.
@@ -60,7 +61,7 @@ export function useLogin(options = {}) {
   };
 }
 
-// ── useRegister ────────────────────────────────────────────────
+// ── useRegister ────────────────────────────────────────────
 export function useRegister(options = {}) {
   const { onSuccess: callerOnSuccess, onError: callerOnError, ...restOptions } = options;
 
@@ -98,7 +99,7 @@ export function useRegister(options = {}) {
   };
 }
 
-// ── useForgotPassword ──────────────────────────────────────────
+// ── useForgotPassword ────────────────────────────────────────────
 export function useForgotPassword(options = {}) {
   const { onSuccess: callerOnSuccess, onError: callerOnError, ...restOptions } = options;
 
@@ -136,7 +137,7 @@ export function useForgotPassword(options = {}) {
   };
 }
 
-// ── useResetPassword ───────────────────────────────────────────
+// ── useResetPassword ────────────────────────────────────────────
 export function useResetPassword(options = {}) {
   const { onSuccess: callerOnSuccess, onError: callerOnError, ...restOptions } = options;
 
@@ -175,7 +176,7 @@ export function useResetPassword(options = {}) {
   };
 }
 
-// ── useChangePassword ──────────────────────────────────────────
+// ── useChangePassword ────────────────────────────────────────────
 export function useChangePassword(options = {}) {
   const { onSuccess: callerOnSuccess, onError: callerOnError, ...restOptions } = options;
 

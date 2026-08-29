@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search } from 'lucide-react';
 
-// Relative imports (Exact same as original):
-import ProjectGrid from '../../../src/components/Cards/ProjectGrid';
-import ProjectDetailCard from '../../../src/components/shared/ProjectDetailCard';
-import FilterDropdown from '../../../src/components/Cards/FilterDropdown';
+import ProjectGrid from '@/components/Cards/ProjectGrid';
+import ProjectDetailCard from '@/components/shared/ProjectDetailCard';
+import FilterDropdown from '@/components/Cards/FilterDropdown';
 import PublishProjectModal from '../Overview/PublishProjectModal';
 
 const Discover = () => {

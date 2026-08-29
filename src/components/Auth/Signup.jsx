@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+// ✅ Fix (goes up 2 levels from src/components/Auth/ to reach root api)
+import { useRegister } from "../../api/hooks/useAuth";
 
 export default function SignUp() {
   const navigate = useNavigate();
@@ -10,7 +12,19 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  const { addRegisterAsync, isPending: loading } = useRegister({
+    onSuccess: () => {
+      setSuccess('Account registered successfully! Redirecting to login...');
+      setFullName('');
+      setEmail('');
+      setPassword('');
+      setTimeout(() => navigate('/login'), 2000);
+    },
+    onError: (err) => {
+      setError(err?.response?.data?.message || err?.message || 'Something went wrong during sign up!');
+    },
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,40 +36,10 @@ export default function SignUp() {
       return;
     }
 
-    setLoading(true);
-
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName,
-          email,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
-      }
-
-      // Success message dikhayen aur form clear kar dein
-      setSuccess('Account registered successfully! Redirecting to login...');
-      setFullName('');
-      setEmail('');
-      setPassword('');
-
-      // 2 seconds ke baad login page par redirect kar dein
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-
-    } catch (err) {
-      setError(err.message || 'Something went wrong during sign up!');
-    } finally {
-      setLoading(false);
+      await addRegisterAsync({ fullName, email, password });
+    } catch {
+      // onError above already set the error message.
     }
   };
 
@@ -96,7 +80,6 @@ export default function SignUp() {
         <div className="lg:col-span-7 p-5 sm:p-8 lg:p-10 xl:p-12 flex flex-col justify-center bg-white overflow-y-auto">
           <div className="max-w-md w-full mx-auto space-y-4 sm:space-y-5">
 
-            {/* Header */}
             <div>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
                 Create an account
@@ -106,14 +89,12 @@ export default function SignUp() {
               </p>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="p-2.5 sm:p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-semibold">
                 {error}
               </div>
             )}
 
-            {/* Success Message Banner */}
             {success && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 text-[#0f9f59] rounded-xl text-xs font-bold flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -121,7 +102,6 @@ export default function SignUp() {
               </div>
             )}
 
-            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -191,7 +171,6 @@ export default function SignUp() {
               </button>
             </form>
 
-            {/* Footer */}
             <p className="text-center text-xs text-slate-400 font-medium">
               Already have an account?{' '}
               <button type="button" onClick={() => navigate('/login')} className="text-[#0f9f59] font-bold hover:underline cursor-pointer">

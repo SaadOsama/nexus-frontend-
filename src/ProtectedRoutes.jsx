@@ -1,19 +1,24 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { Navigate, useLocation } from 'react-router-dom';
 
-export default function ProtectedRoutes({ allowedRoles }) {
-  const authData = JSON.parse(localStorage.getItem('nexus_user') || 'null');
+// Wrap any route that must never render — not even for a flash — without a
+// logged-in user. This is what satisfies requirement #4: typing a project
+// URL directly, with no session, must redirect to login instead of showing
+// data first and reacting after the API call fails.
+//
+// Usage in your router:
+//   <Route path="/projects" element={
+//     <ProtectedRoute><ProjectList /></ProtectedRoute>
+//   } />
+export default function ProtectedRoute({ children }) {
+  const location = useLocation();
+  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+  const token = useSelector((state) => state.user.token) || localStorage.getItem('iccd_token');
 
-  // 1. Agar user logged in nahi he -> Send to Login
-  if (!authData || !authData.token) {
-    return <Navigate to="/login" replace />;
+  if (!isAuthenticated && !token) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // 2. Agar user wrong role ke sath access kar raha he -> Redirect to appropriate dashboard
-  if (allowedRoles && !allowedRoles.includes(authData.role)) {
-    return <Navigate to={authData.role === 'admin' ? '/admin' : '/overview'} replace />;
-  }
-
-  // 3. Authenticated & Authorized -> Render requested route
-  return <Outlet />;
+  return children;
 }

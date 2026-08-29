@@ -1,0 +1,62 @@
+# check-imports.ps1
+# Run this from your project root: D:\website matz\Matz-Nexus-Frontend>
+# Usage: powershell -ExecutionPolicy Bypass -File check-imports.ps1
+
+$srcPath = Join-Path (Get-Location) "src"
+$extensions = @(".js", ".jsx", ".ts", ".tsx")
+$files = Get-ChildItem -Path $srcPath -Recurse -Include *.js,*.jsx,*.ts,*.tsx
+
+$brokenImports = @()
+
+foreach ($file in $files) {
+    $content = Get-Content $file.FullName -Raw
+    # Match: from "@/something" or from '@/something' or from "@root/something"
+    $matches = [regex]::Matches($content, "from\s+['""](@\/[^'""]+|@root\/[^'""]+)['""]")
+
+    foreach ($match in $matches) {
+        $importPath = $match.Groups[1].Value
+
+        if ($importPath.StartsWith("@root/")) {
+            $relativePath = $importPath -replace "^@root/", ""
+            $basePath = Get-Location
+        } else {
+            $relativePath = $importPath -replace "^@/", ""
+            $basePath = $srcPath
+        }
+
+        $fullTargetPath = Join-Path $basePath $relativePath
+
+        # Check if file exists with any common extension, or as-is, or as index file
+        $found = $false
+        $candidates = @(
+            $fullTargetPath,
+            "$fullTargetPath.js",
+            "$fullTargetPath.jsx",
+            "$fullTargetPath.ts",
+            "$fullTargetPath.tsx",
+            (Join-Path $fullTargetPath "index.js"),
+            (Join-Path $fullTargetPath "index.jsx")
+        )
+
+        foreach ($candidate in $candidates) {
+            if (Test-Path $candidate) {
+                $found = $true
+                break
+            }
+        }
+
+        if (-not $found) {
+            $brokenImports += [PSCustomObject]@{
+                File       = $file.FullName.Replace((Get-Location).Path + "\", "")
+                ImportPath = $importPath
+            }
+        }
+    }
+}
+
+if ($brokenImports.Count -eq 0) {
+    Write-Host "No broken '@' imports found!" -ForegroundColor Green
+} else {
+    Write-Host "`nFound $($brokenImports.Count) broken import(s):`n" -ForegroundColor Red
+    $brokenImports | Format-Table -AutoSize
+}

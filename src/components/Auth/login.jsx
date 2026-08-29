@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, User, ShieldCheck, ArrowRight } from 'lucide-react';
+import { useLogin } from "@/api/hooks/useAuth";
 
 export default function Login({ onLoginSuccess }) {
   const navigate = useNavigate();
@@ -8,7 +9,21 @@ export default function Login({ onLoginSuccess }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+
+  // useLogin dispatches loginSuccess to Redux (requirement #5) and saves
+  // the token under the "iccd_token" key that both the axios interceptor
+  // and ProtectedRoute rely on. Navigation is handled here, by role,
+  // instead of inside the hook, since where to go depends on this screen.
+  const { userLoginAsync, isPending: loading } = useLogin({
+    onSuccess: (response) => {
+      const user = response?.data?.user;
+      if (onLoginSuccess) onLoginSuccess(user);
+      navigate(user?.role === 'admin' ? '/admin' : '/overview');
+    },
+    onError: (err) => {
+      setError(err?.response?.data?.message || err?.message || 'Login failed');
+    },
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,41 +34,14 @@ export default function Login({ onLoginSuccess }) {
       return;
     }
 
-    setLoading(true);
-
-    // Email ke hisab se dynamic role set karein taaki backend switch fail na ho
-    const computedRole = email.toLowerCase().includes('admin') ? 'admin' : 'user';
-
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          role: computedRole,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-
-      // Save Token and User Info into LocalStorage
-      localStorage.setItem('nexus_token', data.token);
-      localStorage.setItem('nexus_user', JSON.stringify(data.user));
-
-      if (onLoginSuccess) {
-        onLoginSuccess(data.user);
-      }
-
-      navigate(data.user.role === 'admin' ? '/admin' : '/overview');
-    } catch (err) {
-      setError(err.message || 'Server connection failed!');
-    } finally {
-      setLoading(false);
+      // No client-guessed "role" sent — the backend looks the user up by
+      // email/password alone and returns whatever role is actually on
+      // their account. Guessing role from the email string used to break
+      // login for any real admin whose email didn't contain "admin".
+      await userLoginAsync({ email, password });
+    } catch {
+      // onError above already set the error message.
     }
   };
 
@@ -81,6 +69,8 @@ export default function Login({ onLoginSuccess }) {
               </div>
               <div className="text-xs">
                 <p className="font-bold text-white uppercase tracking-wider">Logging in as</p>
+                {/* This banner is cosmetic only now — a hint based on what
+                    they've typed so far, not something sent to the server. */}
                 <p className="text-emerald-100 capitalize font-medium">{isAdminEmail ? 'admin' : 'user'} Mode Active</p>
               </div>
             </div>

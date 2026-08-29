@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   Sparkles,
   ArrowRight,
@@ -64,7 +65,7 @@ const steps = [
 ];
 
 // ==========================================
-// PROJECT CARD (reused on homepage)
+// PROJECT CARD
 // ==========================================
 const ProjectCard = ({ project, onProtectedClick }) => (
   <div className="bg-white border border-slate-100 rounded-2xl p-6 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
@@ -106,14 +107,20 @@ const ProjectCard = ({ project, onProtectedClick }) => (
 // ==========================================
 export default function HomePage() {
   const navigate = useNavigate();
+  
+  // Redux token/user state check (Optional, safely handles non-auth users)
+  const { isAuthenticated, user } = useSelector((state) => state.auth || {});
 
-  // NOTE: previously this opened a fake "LoginGateModal" that never checked
-  // real credentials and always navigated to '/'. That modal has been
-  // removed — every gated action now goes to the REAL /login page, which
-  // already has correct user/admin credential checking and redirects
-  // (user -> /overview, admin -> /admin).
   const requireAuth = () => {
-    navigate('/login');
+    if (isAuthenticated) {
+      if (user?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/overview');
+      }
+    } else {
+      navigate('/login');
+    }
   };
 
   return (
@@ -143,21 +150,34 @@ export default function HomePage() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-4 py-2.5 cursor-pointer"
-          >
-            Log in
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/signup')}
-            style={{ backgroundColor: '#0f9f59' }}
-            className="text-xs font-semibold text-white px-4 py-2.5 rounded-xl hover:opacity-90 shadow-sm shadow-emerald-200 cursor-pointer transition-opacity"
-          >
-            Sign up free
-          </button>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={requireAuth}
+              style={{ backgroundColor: '#0f9f59' }}
+              className="text-xs font-semibold text-white px-4 py-2.5 rounded-xl hover:opacity-90 shadow-sm shadow-emerald-200 cursor-pointer transition-opacity"
+            >
+              Go to Workspace
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-4 py-2.5 cursor-pointer"
+              >
+                Log in
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/signup')}
+                style={{ backgroundColor: '#0f9f59' }}
+                className="text-xs font-semibold text-white px-4 py-2.5 rounded-xl hover:opacity-90 shadow-sm shadow-emerald-200 cursor-pointer transition-opacity"
+              >
+                Sign up free
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -198,7 +218,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ================= FEATURED PROJECTS (teaser) ================= */}
+      {/* ================= FEATURED PROJECTS ================= */}
       <section className="px-8 py-14 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -227,12 +247,16 @@ export default function HomePage() {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-8">
-          Free to browse. <button type="button" onClick={() => navigate('/signup')} className="text-[#0f9f59] font-semibold cursor-pointer">Sign up</button> to save projects, message founders, or publish your own.
+          Free to browse.{' '}
+          <button type="button" onClick={() => navigate('/signup')} className="text-[#0f9f59] font-semibold cursor-pointer">
+            Sign up
+          </button>{' '}
+          to save projects, message founders, or publish your own.
         </p>
       </section>
 
       {/* ================= HOW IT WORKS ================= */}
-      <section id="how-it-works" className="px-8 py-16 bg-slate-50/70">
+      <section id="how-it-works" className="px-8 py-16 bg-slate-50/70 scroll-mt-16">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <span className="text-[11px] font-bold text-[#0f9f59] uppercase tracking-wider">
