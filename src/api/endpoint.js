@@ -7,9 +7,9 @@ export const API_ENDPOINTS = {
     changePassword: "/auth/change-password",
   },
   projects: {
-    list: "/projects/browse",
+    list: "/projects",
     mine: "/projects/mine",
-    create: "/projects/publish",
+    create: "/projects", // 👈 FIX: "/projects/publish" ko "/projects" kar diya hai
   },
   collaborations: {
     list: "/collaborations",

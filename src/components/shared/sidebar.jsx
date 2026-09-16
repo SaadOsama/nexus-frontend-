@@ -1,36 +1,35 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux'; // Redux state access karne ke liye
 import {
   Sparkles,
   Search,
   FolderKanban,
   LayoutDashboard,
   MessageSquare,
-  User,
   Users,
-  Bookmark,
-  Bell,
-  Lock
+  Bookmark
 } from 'lucide-react';
 
 const Sidebar = () => { 
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Redux store se counts get karein (apne exact slice name ke hisab se state path adjust kar sakte hain)
+  const unreadMessagesCount = useSelector((state) => state.chat?.unreadCount ?? 0);
+  const pendingRequestsCount = useSelector((state) => state.collaboration?.pendingCount ?? 0);
+
   const navItems = [
     { name: 'Overview', icon: LayoutDashboard, path: '/' },
     { name: 'Discover', icon: Search, path: '/discover' },
     { name: 'My Projects', icon: FolderKanban, path: '/my-projects' },
     { name: 'Saved Projects', icon: Bookmark, path: '/saved-projects' },
-    { name: 'Collaboration Requests', icon: Users, path: '/requests', badge: 2 },
-    { name: 'Messages', icon: MessageSquare, path: '/messages', badge: 3 },
+    { name: 'Collaboration Requests', icon: Users, path: '/requests', badge: pendingRequestsCount },
+    { name: 'Messages', icon: MessageSquare, path: '/messages', badge: unreadMessagesCount },
   ];
 
-  // Admin route exact match logic
-  const isAdminActive = location.pathname === '/admin';
-
   return (
-    <aside className="w-60 bg-white text-slate-700 min-h-screen flex flex-col justify-between p-4 select-none border-r border-slate-100 shrink-0 font-sans">
+    <aside className="w-60 bg-white text-slate-700 h-screen sticky top-0 flex flex-col justify-between p-4 select-none border-r border-slate-100 shrink-0 font-sans z-30 overflow-y-auto">
       <div className="flex flex-col flex-1">
         
         {/* Logo & Header */}
@@ -49,6 +48,7 @@ const Sidebar = () => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
+            const hasBadge = typeof item.badge === 'number' && item.badge > 0;
 
             return (
               <button
@@ -66,8 +66,9 @@ const Sidebar = () => {
                   <span className="text-left break-words">{item.name}</span>
                 </div>
 
-                {item.badge !== undefined && (
-                  <span className="w-5 h-5 shrink-0 bg-[#0f9f59] text-white text-[11px] font-medium rounded-full flex items-center justify-center">
+                {/* Badge sirf tabhi dikhega jab badge count 0 se zyada ho */}
+                {hasBadge && (
+                  <span className="px-1.5 min-w-[20px] h-5 shrink-0 bg-[#0f9f59] text-white text-[11px] font-medium rounded-full flex items-center justify-center">
                     {item.badge}
                   </span>
                 )}
@@ -75,22 +76,6 @@ const Sidebar = () => {
             );
           })}
         </nav>
-
-        {/* Admin Console Navigation Item */}
-        <div className="mt-6 pt-4 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={() => navigate('/admin')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer ${
-              isAdminActive
-                ? 'bg-[#e6f4ea] text-[#0f9f59] font-semibold'
-                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-            }`}
-          >
-            <Lock className={`w-4.5 h-4.5 ${isAdminActive ? 'text-[#0f9f59]' : 'text-slate-400'}`} />
-            <span>Admin console</span>
-          </button>
-        </div>
 
       </div>
     </aside>

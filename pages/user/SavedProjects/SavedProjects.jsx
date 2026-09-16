@@ -1,42 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { Bookmark, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bookmark, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import ProjectDetailCard from '../../../src/components/shared/ProjectDetailCard';
-import { useGetProjects } from "@/api/client/projects";
+import { useGetSavedProjects, useToggleSaveProject } from "@/api/client/projects";
 
 export default function SavedProjects() {
   const [selectedProject, setSelectedProject] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Uses the shared `api` instance (with the auth token attached) instead
-  // of a raw axios call to http://localhost:5000 — this is what makes
-  // this page actually respect requirement #4 (no data without login),
-  // and it's also what carries the isOwner / hasRequested flags per
-  // project for requirements #2 and #6.
-  const { data: allProjects = [], isLoading, isError } = useGetProjects();
+  const { data, isLoading, isError } = useGetSavedProjects({ page: currentPage, limit: 6 });
+  const toggleSave = useToggleSaveProject();
 
-  const [savedProjectIds, setSavedProjectIds] = useState(() => {
-    const saved = localStorage.getItem('nexus_saved_projects');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('nexus_saved_projects', JSON.stringify(savedProjectIds));
-  }, [savedProjectIds]);
-
-  const handleToggleSave = (projectOrId) => {
-    const id = typeof projectOrId === 'object' ? projectOrId.id : projectOrId;
-    setSavedProjectIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+  const savedProjects = data?.rows || [];
+  const pagination = data?.pagination || {
+    totalProjects: 0,
+    totalPages: 1,
+    currentPage: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
   };
 
-  const savedProjects = allProjects.filter((p) => savedProjectIds.includes(p.id));
+  const goToPage = (page) => {
+    if (page < 1 || page > pagination.totalPages) return;
+    setCurrentPage(page);
+  };
+
+  const handleToggleSave = (projectOrId) => {
+    const project_id = typeof projectOrId === 'object' ? projectOrId.id : projectOrId;
+    toggleSave.mutate({ project_id, isSaved: true });
+  };
 
   if (selectedProject) {
     return (
       <ProjectDetailCard
         project={selectedProject}
         onBackToProjects={() => setSelectedProject(null)}
-        isSaved={savedProjectIds.includes(selectedProject.id)}
+        isSaved={true}
         onToggleSave={() => handleToggleSave(selectedProject.id)}
       />
     );
@@ -52,7 +50,14 @@ export default function SavedProjects() {
         </div>
 
         <div className="space-y-4 pt-2">
-          <h2 className="text-base font-bold text-slate-900">Saved projects</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-900">Saved projects</h2>
+            {pagination.totalProjects > 0 && (
+              <span className="text-xs text-gray-400 font-medium">
+                {pagination.totalProjects} project{pagination.totalProjects === 1 ? '' : 's'} total
+              </span>
+            )}
+          </div>
 
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -66,10 +71,9 @@ export default function SavedProjects() {
               Could not load projects from server.
             </div>
           ) : savedProjects.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {savedProjects.map((project) => {
-                const isSaved = savedProjectIds.includes(project.id);
-                return (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {savedProjects.map((project) => (
                   <div
                     key={project.id}
                     onClick={() => setSelectedProject(project)}
@@ -83,9 +87,9 @@ export default function SavedProjects() {
                         type="button"
                         onClick={(e) => { e.stopPropagation(); handleToggleSave(project.id); }}
                         className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1"
-                        title={isSaved ? "Remove from saved" : "Save project"}
+                        title="Remove from saved"
                       >
-                        <Bookmark className={`w-5 h-5 ${isSaved ? 'fill-[#00a664] text-[#00a664]' : ''}`} />
+                        <Bookmark className="w-5 h-5 fill-[#00a664] text-[#00a664]" />
                       </button>
                     </div>
 
@@ -102,13 +106,9 @@ export default function SavedProjects() {
 
                     <div className="pt-4 border-t border-slate-50 flex items-center justify-between text-xs text-slate-400">
                       <span>{project.stage} · {project.country || project.location}</span>
-                      <span className="font-bold text-[#00a664]">{project.match}% match</span>
+                      <span className="font-bold text-[#00a664]">{project.match ?? project.match_score ?? 90}% match</span>
                     </div>
 
-                    {/* isOwner / hasRequested come from the backend join in
-                        getBrowseProjects — this is the pattern to reuse
-                        wherever a "Request Collaboration" button appears
-                        (requirements #2 and #6). */}
                     {!project.isOwner && (
                       <button
                         type="button"
@@ -120,9 +120,49 @@ export default function SavedProjects() {
                       </button>
                     )}
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-6">
+                  <button
+                    type="button"
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={!pagination.hasPrevPage}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => goToPage(page)}
+                      style={
+                        page === currentPage
+                          ? { backgroundColor: '#00a664', color: '#ffffff' }
+                          : undefined
+                      }
+                      className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                        page === currentPage ? '' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={!pagination.hasNextPage}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="border border-dashed border-slate-200 rounded-2xl p-12 text-center text-sm text-slate-400 bg-slate-50/50">
               No saved projects yet. Bookmark projects to view them here.

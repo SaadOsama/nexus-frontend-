@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import axios from 'axios';
 
-// Shared Components & Auth (Exact File Casing)
+// Shared Components & Auth
 import Layout from './components/shared/layout.jsx';
 import Login from './components/Auth/login.jsx';
 import Signup from './components/Auth/Signup.jsx';
@@ -18,16 +20,68 @@ import Notifications from '../pages/user/Notifications/Notifications.jsx';
 import CollaborationRequests from '../pages/user/CollaborationRequests/CollaborationRequests.jsx';
 import SavedProjects from '../pages/user/SavedProjects/SavedProjects.jsx';
 import AdminOverview from '../pages/user/AdminOverview/AdminOverview.jsx';
+import ProtectedRoute from './ProtectedRoutes.jsx';
+import PublicRoute from './PublicRoute.jsx';
 
 export default function App() {
+  const dispatch = useDispatch();
+  const { isAuthenticated, user, token } = useSelector((state) => state.user);
+
+  // App load hote hi DB se active unread counts fetch karne ke liye effect
+  useEffect(() => {
+    const fetchBadgeCounts = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/messages/counts', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (response.data.success) {
+          // Direct dispatch without extra file imports
+          dispatch({
+            type: 'user/setBadgeCounts',
+            payload: {
+              unreadMessages: response.data.unreadMessages,
+              pendingRequests: response.data.pendingRequests,
+            }
+          });
+        }
+      } catch (error) {
+        console.error('❌ Error fetching badge counts:', error);
+      }
+    };
+
+    if (isAuthenticated && token) {
+      fetchBadgeCounts();
+    }
+  }, [isAuthenticated, token, dispatch]);
+
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} /> 
+      {/* Public Routes */}
       <Route path="/" element={<HomePage />} />
-      <Route path="/admin" element={<AdminOverview />} />
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
 
-      <Route element={<Layout />}>
+      {/* Admin Route */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminOverview />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Protected User Routes */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="/user" element={<Overview />} />
         <Route path="/overview" element={<Overview />} />
         <Route path="/discover" element={<Discover />} />
@@ -40,7 +94,16 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/* Fallback Catch-all */}
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to={isAuthenticated ? (user?.role === 'admin' ? '/admin' : '/overview') : '/login'}
+            replace
+          />
+        }
+      />
     </Routes>
   );
 }

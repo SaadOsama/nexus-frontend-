@@ -22,7 +22,6 @@ const featuredProjects = [
     chips: ['Energy', 'Climate', 'Open source'],
     stage: 'Prototype',
     country: 'United Kingdom',
-    match: 94,
   },
   {
     title: 'MediRoute',
@@ -32,7 +31,6 @@ const featuredProjects = [
     chips: ['Healthcare', 'Mobile', 'Impact'],
     stage: 'MVP',
     country: 'Kenya',
-    match: 88,
   },
   {
     title: 'Classroom OS',
@@ -42,7 +40,6 @@ const featuredProjects = [
     chips: ['EdTech', 'SaaS', 'Teachers'],
     stage: 'Early Revenue',
     country: 'Canada',
-    match: 82,
   },
 ];
 
@@ -97,7 +94,6 @@ const ProjectCard = ({ project, onProtectedClick }) => (
       <span className="text-slate-400">
         {project.stage} · {project.country}
       </span>
-      <span className="font-bold text-[#0f9f59]">{project.match}% match</span>
     </div>
   </div>
 );

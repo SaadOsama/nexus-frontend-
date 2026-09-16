@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { CheckCircle2, X, Lock } from 'lucide-react';
+import { useSelector } from 'react-redux';
 import { useSendCollaborationRequest } from "@/api/client/collaborations";
 
 export default function CollaborationRequestModal({ isOpen, onClose, project, onRequestSent }) {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
 
+  const currentUser = useSelector((state) => state.user?.user);
+  const sender_id = currentUser?.id;
+
   const { mutateAsync: sendRequest, isPending: loading } = useSendCollaborationRequest();
-  const [status, setStatus] = useState(null); // null | 'success' | 'error'
+  const [status, setStatus] = useState(null);
   const [statusMessage, setStatusMessage] = useState('');
 
   if (!isOpen) return null;
@@ -47,10 +51,28 @@ export default function CollaborationRequestModal({ isOpen, onClose, project, on
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus(null);
+
+    if (!project?.id || !sender_id) {
+      setStatus('error');
+      setStatusMessage(
+        !sender_id
+          ? 'You must be logged in to send a request.'
+          : 'Missing project information. Please try again.'
+      );
+      return;
+    }
+
     try {
-      await sendRequest({ project_id: project.id, email, message });
+      await sendRequest({
+        project_id: project.id,
+        sender_id,
+        email,
+        message,
+      });
+
       setStatus('success');
-      setStatusMessage('Your collaboration request has been sent successfully.');
+      // Updated Message for Admin Flow
+      setStatusMessage('Your collaboration request has been submitted for Admin approval.');
       if (onRequestSent) onRequestSent();
     } catch (err) {
       setStatus('error');
@@ -70,7 +92,7 @@ export default function CollaborationRequestModal({ isOpen, onClose, project, on
             {status === 'success' ? <CheckCircle2 className="w-7 h-7" /> : <X className="w-7 h-7" />}
           </div>
 
-          <h2 className="text-lg font-bold text-slate-900 mb-1.5">{status === 'success' ? 'Request sent!' : 'Something went wrong'}</h2>
+          <h2 className="text-lg font-bold text-slate-900 mb-1.5">{status === 'success' ? 'Submitted for Approval!' : 'Something went wrong'}</h2>
           <p className="text-sm text-slate-500 mb-6">{statusMessage}</p>
 
           <button type="button" onClick={resetAndClose} style={{ backgroundColor: status === 'success' ? '#0f9f59' : '#ef4444' }} className="w-full py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition cursor-pointer">

@@ -2,23 +2,29 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate, useLocation } from 'react-router-dom';
 
-// Wrap any route that must never render — not even for a flash — without a
-// logged-in user. This is what satisfies requirement #4: typing a project
-// URL directly, with no session, must redirect to login instead of showing
-// data first and reacting after the API call fails.
-//
-// Usage in your router:
-//   <Route path="/projects" element={
-//     <ProtectedRoute><ProjectList /></ProtectedRoute>
-//   } />
 export default function ProtectedRoute({ children }) {
   const location = useLocation();
-  const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
-  const token = useSelector((state) => state.user.token) || localStorage.getItem('iccd_token');
 
-  if (!isAuthenticated && !token) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+  // 1. Redux State
+  const reduxAuth = useSelector((state) => state.user?.isAuthenticated);
+
+  // 2. Direct Sync LocalStorage Check (No Delay)
+  const token = localStorage.getItem('nexus_token');
+  const hasToken = Boolean(
+    token && 
+    token !== 'undefined' && 
+    token !== 'null' && 
+    token.trim() !== ''
+  );
+
+  // Debugger to trace in Console
+  console.log('[ProtectedRoute Check]', { reduxAuth, hasToken, token });
+
+  // Agar Redux State true ho YA Direct LocalStorage me valid token pada ho, access allow karein
+  if (reduxAuth || hasToken) {
+    return children;
   }
 
-  return children;
+  // Otherwise login par redirect
+  return <Navigate to="/login" replace state={{ from: location }} />;
 }

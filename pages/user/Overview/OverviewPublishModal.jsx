@@ -1,8 +1,18 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, User, ShieldCheck, ArrowRight } from "lucide-react";
+import { createPortal } from "react-dom";
+import { useSelector } from "react-redux";
+import { 
+  X, 
+  Sparkles, 
+  FileText, 
+  Layers, 
+  Globe2, 
+  Target, 
+  Loader2, 
+  ChevronDown, 
+  Check 
+} from "lucide-react";
 import { usePublishProject } from "@/api/client/projects";
-
 
 // ==========================================
 // 1. FILTER DROPDOWN COMPONENT
@@ -64,6 +74,9 @@ const industryOptions = ['Climate & Energy', 'Health & Wellness', 'Education', '
 const stageOptions = ['Idea', 'Prototype', 'MVP', 'Early Revenue', 'Growth'];
 
 const PublishProjectModal = ({ isOpen, onClose, onProjectPublished }) => {
+  // 🟢 Redux se logged-in user get karein (ya user ID 1 as fallback)
+const { user } = useSelector((state) => state.user || {});
+
   const [formData, setFormData] = useState({
     title: '', description: '', industry: '', stage: '', country: '', lookingFor: '',
   });
@@ -85,7 +98,9 @@ const PublishProjectModal = ({ isOpen, onClose, onProjectPublished }) => {
     e.preventDefault();
     if (!formData.title || !formData.description) return;
 
+    // 🟢 Fix: Express backend ke required validation fields (user_id included)
     const payload = {
+      user_id: user?.id || user?._id || 1, 
       title: formData.title.trim(),
       description: formData.description.trim(),
       category: formData.industry || 'General',
@@ -93,6 +108,7 @@ const PublishProjectModal = ({ isOpen, onClose, onProjectPublished }) => {
       stage: formData.stage || 'Idea',
       location: formData.country || 'Pakistan',
       looking_for: formData.lookingFor || 'Feedback',
+      match_score: 90,
       tags: [formData.industry, formData.stage].filter(Boolean),
     };
 
@@ -102,7 +118,7 @@ const PublishProjectModal = ({ isOpen, onClose, onProjectPublished }) => {
       if (onProjectPublished) onProjectPublished();
       onClose();
     } catch (error) {
-      // Error is handled inside hook toast
+      console.error("Error publishing project:", error);
     }
   };
 
