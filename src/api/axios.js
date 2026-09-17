@@ -3,7 +3,7 @@ import { store } from '@/redux/slices/store';
 import { logout } from '@/redux/slices/userSlices';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://nexus-backend-production-1bff.up.railway.app/api',
 });
 
 // Har request ke saath token attach karo
