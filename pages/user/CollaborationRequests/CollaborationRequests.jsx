@@ -11,7 +11,7 @@ import {
 import {
   useGetPendingProjects,
   useProjectAdminAction,
-} from '@/api/client/projectApprovals';
+} from '@/api/client/ProjectApprovals';
 import CollaborationRequestCard from './CollaborationRequestCard.jsx';
 import CollaborationRequestDetailModal from './CollaborationRequestDetailModal.jsx';
 
