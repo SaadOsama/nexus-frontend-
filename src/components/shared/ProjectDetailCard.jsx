@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import CollaborationRequestModal from '../../../pages/user/CollaborationRequests/CollaborationRequestModal';
+import CollaborationRequestModal from '../../../pages/user/CollaborationRequests/collaborationRequestModal';
 
 const ProjectDetailCard = ({ project, currentUserId, onBackToProjects, isSaved, onToggleSave, onRequestSuccess }) => {
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
