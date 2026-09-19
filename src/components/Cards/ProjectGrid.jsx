@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { Bookmark, Loader2 } from 'lucide-react';
 import { useSelector } from 'react-redux';
-import axios from 'axios';
+import api from '@/api/axios';
 
 const ProjectGrid = ({
   onSelectProject,
@@ -41,7 +41,7 @@ const ProjectGrid = ({
       setError(null);
       try {
         // ðŸŸ¢ Send category and search query params directly to backend API
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/projects`, {
+        const res = await api.get(`/projects`, {
           params: {
             page: effectivePage,
             limit: 6,
@@ -200,3 +200,5 @@ const ProjectGrid = ({
 };
 
 export default ProjectGrid;
+
+

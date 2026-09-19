@@ -1,7 +1,7 @@
 ﻿import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import axios from 'axios';
+import api from '@/api/axios';
 
 // Shared Components & Auth
 import Layout from './components/shared/layout.jsx';
@@ -31,7 +31,7 @@ export default function App() {
   useEffect(() => {
     const fetchBadgeCounts = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/messages/counts`, {
+        const response = await api.get(`/messages/counts`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -107,5 +107,7 @@ export default function App() {
     </Routes>
   );
 }
+
+
 
 

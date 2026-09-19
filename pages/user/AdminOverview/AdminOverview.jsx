@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Sparkles, Check, X, RefreshCw, Eye } from 'lucide-react';
-import axios from 'axios';
+import api from '@/api/axios';
 
 function AdminOverview({ onExit }) {
   const [requests, setRequests] = useState([]); // collaboration requests
@@ -27,7 +27,7 @@ function AdminOverview({ onExit }) {
   const fetchPendingRequests = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/collaborations/admin/requests`, {
+      const response = await api.get(`/collaborations/admin/requests`, {
         headers: getAuthHeader()
       });
       if (response.data.success) {
@@ -44,7 +44,7 @@ function AdminOverview({ onExit }) {
   const fetchPendingProjects = async () => {
     setProjectsLoading(true);
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/projects/admin/pending`, {
+      const response = await api.get(`/projects/admin/pending`, {
         headers: getAuthHeader()
       });
       if (response.data.success) {
@@ -66,8 +66,8 @@ function AdminOverview({ onExit }) {
   const handleAction = async (id, status) => {
     setActionLoading(true);
     try {
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_BASE_URL}/collaborations/admin/requests/${id}/status`,
+      const response = await api.put(
+        `/collaborations/admin/requests/${id}/status`,
         {
           status: status,
           action: status,
@@ -93,8 +93,8 @@ function AdminOverview({ onExit }) {
   const handleProjectAction = async (id, action) => {
     setActionLoading(true);
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/projects/admin/action/${id}`,
+      const response = await api.post(
+        `/projects/admin/action/${id}`,
         { action, adminNote },
         { headers: getAuthHeader() }
       );
@@ -462,5 +462,7 @@ function AdminOverview({ onExit }) {
 }
 
 export default AdminOverview;
+
+
 
 
