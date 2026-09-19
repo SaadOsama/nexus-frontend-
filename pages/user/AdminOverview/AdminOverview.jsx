@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Sparkles, Check, X, RefreshCw, Eye } from 'lucide-react';
 import axios from 'axios';
 
 function AdminOverview({ onExit }) {
   const [requests, setRequests] = useState([]); // collaboration requests
-  const [projectRequests, setProjectRequests] = useState([]); // 🟢 NEW: pending projects
+  const [projectRequests, setProjectRequests] = useState([]); // ðŸŸ¢ NEW: pending projects
   const [loading, setLoading] = useState(true);
-  const [projectsLoading, setProjectsLoading] = useState(true); // 🟢 NEW
+  const [projectsLoading, setProjectsLoading] = useState(true); // ðŸŸ¢ NEW
   const [actionLoading, setActionLoading] = useState(false);
 
-  // 🟢 NEW: which queue tab is active
+  // ðŸŸ¢ NEW: which queue tab is active
   const [activeQueue, setActiveQueue] = useState('collaborations'); // 'collaborations' | 'projects'
 
   // Modal & Response State
   const [selectedReq, setSelectedReq] = useState(null);
-  const [selectedReqType, setSelectedReqType] = useState('collaboration'); // 🟢 NEW: 'collaboration' | 'project'
+  const [selectedReqType, setSelectedReqType] = useState('collaboration'); // ðŸŸ¢ NEW: 'collaboration' | 'project'
   const [adminNote, setAdminNote] = useState('');
 
   // Helper function to get token reliably
@@ -27,7 +27,7 @@ function AdminOverview({ onExit }) {
   const fetchPendingRequests = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/collaborations/admin/requests', {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/collaborations/admin/requests`, {
         headers: getAuthHeader()
       });
       if (response.data.success) {
@@ -40,11 +40,11 @@ function AdminOverview({ onExit }) {
     }
   };
 
-  // 🟢 NEW: Fetch pending project publish requests
+  // ðŸŸ¢ NEW: Fetch pending project publish requests
   const fetchPendingProjects = async () => {
     setProjectsLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/projects/admin/pending', {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/projects/admin/pending`, {
         headers: getAuthHeader()
       });
       if (response.data.success) {
@@ -59,7 +59,7 @@ function AdminOverview({ onExit }) {
 
   useEffect(() => {
     fetchPendingRequests();
-    fetchPendingProjects(); // 🟢 NEW
+    fetchPendingProjects(); // ðŸŸ¢ NEW
   }, []);
 
   // Accept or Reject Collaboration Request Handler with Optional Note
@@ -67,7 +67,7 @@ function AdminOverview({ onExit }) {
     setActionLoading(true);
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/collaborations/admin/requests/${id}/status`,
+        `${import.meta.env.VITE_API_BASE_URL}/collaborations/admin/requests/${id}/status`,
         {
           status: status,
           action: status,
@@ -89,12 +89,12 @@ function AdminOverview({ onExit }) {
     }
   };
 
-  // 🟢 NEW: Approve or Reject a pending PROJECT (with optional admin note/comment)
+  // ðŸŸ¢ NEW: Approve or Reject a pending PROJECT (with optional admin note/comment)
   const handleProjectAction = async (id, action) => {
     setActionLoading(true);
     try {
       const response = await axios.post(
-        `http://localhost:5000/api/projects/admin/action/${id}`,
+        `${import.meta.env.VITE_API_BASE_URL}/projects/admin/action/${id}`,
         { action, adminNote },
         { headers: getAuthHeader() }
       );
@@ -117,7 +117,7 @@ function AdminOverview({ onExit }) {
     else window.location.href = '/';
   };
 
-  // 🟢 UPDATED: pending requests stat now counts both queues combined
+  // ðŸŸ¢ UPDATED: pending requests stat now counts both queues combined
   const stats = [
     { value: '1,248', label: 'Registered users' },
     { value: '86', label: 'Active projects' },
@@ -200,7 +200,7 @@ function AdminOverview({ onExit }) {
               </button>
             </div>
 
-            {/* 🟢 NEW: Tabs to switch between the two queues */}
+            {/* ðŸŸ¢ NEW: Tabs to switch between the two queues */}
             <div className="flex items-center gap-1 bg-slate-50 rounded-xl p-1 border border-slate-100">
               <button
                 type="button"
@@ -273,7 +273,7 @@ function AdminOverview({ onExit }) {
                   </div>
                 ))
               ) : (
-                // 🟢 NEW: Project publish requests list
+                // ðŸŸ¢ NEW: Project publish requests list
                 projectRequests.map((item) => (
                   <div
                     key={item.id}
@@ -288,7 +288,7 @@ function AdminOverview({ onExit }) {
                       <p className="font-semibold text-slate-900">{item.title}</p>
                       <p className="text-slate-500 text-[11px]">
                         By <span className="font-medium text-slate-800">{item.ownerName || `User #${item.user_id}`}</span>
-                        {' · '}{item.category || item.industry || 'General'}
+                        {' Â· '}{item.category || item.industry || 'General'}
                       </p>
                     </div>
 
@@ -325,7 +325,7 @@ function AdminOverview({ onExit }) {
         </div>
       </div>
 
-      {/* MODAL: Request Details & Action — 🟢 UPDATED: handles both collaboration & project types */}
+      {/* MODAL: Request Details & Action â€” ðŸŸ¢ UPDATED: handles both collaboration & project types */}
       {selectedReq && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg space-y-5 rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
@@ -462,3 +462,5 @@ function AdminOverview({ onExit }) {
 }
 
 export default AdminOverview;
+
+

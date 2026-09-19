@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
@@ -31,7 +31,7 @@ export default function App() {
   useEffect(() => {
     const fetchBadgeCounts = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/messages/counts', {
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/messages/counts`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -48,7 +48,7 @@ export default function App() {
           });
         }
       } catch (error) {
-        console.error('❌ Error fetching badge counts:', error);
+        console.error('âŒ Error fetching badge counts:', error);
       }
     };
 
@@ -107,3 +107,5 @@ export default function App() {
     </Routes>
   );
 }
+
+

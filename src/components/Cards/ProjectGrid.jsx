@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Bookmark, Loader2 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
@@ -19,7 +19,7 @@ const ProjectGrid = ({
 
   const currentUser = useSelector((state) => state.user?.user);
 
-  // 🟢 FIX: Track previous filter values so we can detect a filter change
+  // ðŸŸ¢ FIX: Track previous filter values so we can detect a filter change
   // and force page=1, even if the parent forgot to reset currentPage.
   const prevFiltersRef = useRef({ selectedCategory, searchQuery });
 
@@ -40,8 +40,8 @@ const ProjectGrid = ({
       setIsLoading(true);
       setError(null);
       try {
-        // 🟢 Send category and search query params directly to backend API
-        const res = await axios.get(`http://localhost:5000/api/projects`, {
+        // ðŸŸ¢ Send category and search query params directly to backend API
+        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/projects`, {
           params: {
             page: effectivePage,
             limit: 6,
@@ -57,7 +57,7 @@ const ProjectGrid = ({
         const rows = Array.isArray(res.data) ? res.data : (res.data?.data || []);
 
         if (isMounted && res.data?.pagination && onPaginationData) {
-          // 🟢 Pass currentPage back too, so parent can sync its own state
+          // ðŸŸ¢ Pass currentPage back too, so parent can sync its own state
           // if it's listening (e.g. setCurrentPage(res.pagination.currentPage))
           onPaginationData(res.data.pagination);
         }
@@ -189,7 +189,7 @@ const ProjectGrid = ({
 
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100 gap-2">
               <span className="text-sm text-slate-400 truncate">
-                {project.stage} {project.country || project.location ? `· ${project.country || project.location}` : ''}
+                {project.stage} {project.country || project.location ? `Â· ${project.country || project.location}` : ''}
               </span>
             </div>
           </button>
