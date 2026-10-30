@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
-import userReducer from './userSlices.js';
-import projectReducer from './projectSlices.js';
+import userReducer from './userSlices';
+import projectReducer from './projectSlices';
 
 export const store = configureStore({
   reducer: {
@@ -9,4 +9,4 @@ export const store = configureStore({
   },
 });
 
-export default store;
+

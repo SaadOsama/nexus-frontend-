@@ -1,7 +1,7 @@
-﻿import React, { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import api from '@/api/axios';
+import axios from 'axios';
 
 // Shared Components & Auth
 import Layout from './components/shared/layout.jsx';
@@ -23,22 +23,24 @@ import AdminOverview from '../pages/user/AdminOverview/AdminOverview.jsx';
 import ProtectedRoute from './ProtectedRoutes.jsx';
 import PublicRoute from './PublicRoute.jsx';
 
+// 🟢 FIX: same pattern — local backend when running locally,  in production
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api';
+
 export default function App() {
   const dispatch = useDispatch();
   const { isAuthenticated, user, token } = useSelector((state) => state.user);
 
-  // App load hote hi DB se active unread counts fetch karne ke liye effect
   useEffect(() => {
     const fetchBadgeCounts = async () => {
       try {
-        const response = await api.get(`/messages/counts`, {
+        // 🟢 FIX: uses API_BASE now, correct '/messages/counts' path (no '/health/')
+        const response = await axios.get(`${API_BASE}/messages/counts`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
         });
 
         if (response.data.success) {
-          // Direct dispatch without extra file imports
           dispatch({
             type: 'user/setBadgeCounts',
             payload: {
@@ -48,7 +50,7 @@ export default function App() {
           });
         }
       } catch (error) {
-        console.error('âŒ Error fetching badge counts:', error);
+        console.error('❌ Error fetching badge counts:', error);
       }
     };
 
@@ -107,7 +109,3 @@ export default function App() {
     </Routes>
   );
 }
-
-
-
-

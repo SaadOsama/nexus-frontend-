@@ -1,33 +1,39 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Sparkles, Check, X, RefreshCw, Eye } from 'lucide-react';
-import api from '@/api/axios';
+import axios from 'axios';
+
+// 🟢 FIX: use local backend when running locally, fallback to  for production
+const API_BASE = 'http://localhost:5000/api';
 
 function AdminOverview({ onExit }) {
-  const [requests, setRequests] = useState([]); // collaboration requests
-  const [projectRequests, setProjectRequests] = useState([]); // ðŸŸ¢ NEW: pending projects
+  const [requests, setRequests] = useState([]);
+  const [projectRequests, setProjectRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [projectsLoading, setProjectsLoading] = useState(true); // ðŸŸ¢ NEW
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // ðŸŸ¢ NEW: which queue tab is active
-  const [activeQueue, setActiveQueue] = useState('collaborations'); // 'collaborations' | 'projects'
+  const [overview, setOverview] = useState({
+    totalUsers: 0,
+    totalApprovedProjects: 0,
+    recentActivity: [],
+  });
+  const [overviewLoading, setOverviewLoading] = useState(true);
 
-  // Modal & Response State
+  const [activeQueue, setActiveQueue] = useState('collaborations');
+
   const [selectedReq, setSelectedReq] = useState(null);
-  const [selectedReqType, setSelectedReqType] = useState('collaboration'); // ðŸŸ¢ NEW: 'collaboration' | 'project'
+  const [selectedReqType, setSelectedReqType] = useState('collaboration');
   const [adminNote, setAdminNote] = useState('');
 
-  // Helper function to get token reliably
   const getAuthHeader = () => {
     const token = localStorage.getItem('token') || localStorage.getItem('nexus_token');
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  // Fetch pending collaboration requests from Backend API
   const fetchPendingRequests = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/collaborations/admin/requests`, {
+      const response = await axios.get(`${API_BASE}/collaborations/admin/requests`, {
         headers: getAuthHeader()
       });
       if (response.data.success) {
@@ -40,11 +46,10 @@ function AdminOverview({ onExit }) {
     }
   };
 
-  // ðŸŸ¢ NEW: Fetch pending project publish requests
   const fetchPendingProjects = async () => {
     setProjectsLoading(true);
     try {
-      const response = await api.get(`/projects/admin/pending`, {
+      const response = await axios.get(`${API_BASE}/projects/admin/pending`, {
         headers: getAuthHeader()
       });
       if (response.data.success) {
@@ -57,22 +62,34 @@ function AdminOverview({ onExit }) {
     }
   };
 
+  const fetchOverviewStats = async () => {
+    setOverviewLoading(true);
+    try {
+      const response = await axios.get(`${API_BASE}/projects/admin/stats`, {
+        headers: getAuthHeader()
+      });
+      if (response.data.success) {
+        setOverview(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching overview stats:', error);
+    } finally {
+      setOverviewLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPendingRequests();
-    fetchPendingProjects(); // ðŸŸ¢ NEW
+    fetchPendingProjects();
+    fetchOverviewStats();
   }, []);
 
-  // Accept or Reject Collaboration Request Handler with Optional Note
   const handleAction = async (id, status) => {
     setActionLoading(true);
     try {
-      const response = await api.put(
-        `/collaborations/admin/requests/${id}/status`,
-        {
-          status: status,
-          action: status,
-          adminNote
-        },
+      const response = await axios.put(
+        `${API_BASE}/collaborations/admin/requests/${id}/status`,
+        { status, action: status, adminNote },
         { headers: getAuthHeader() }
       );
 
@@ -80,6 +97,7 @@ function AdminOverview({ onExit }) {
         setRequests((prev) => prev.filter((item) => item.id !== id));
         setSelectedReq(null);
         setAdminNote('');
+        fetchOverviewStats();
       }
     } catch (error) {
       console.error(`Error performing ${status} action:`, error);
@@ -89,12 +107,11 @@ function AdminOverview({ onExit }) {
     }
   };
 
-  // ðŸŸ¢ NEW: Approve or Reject a pending PROJECT (with optional admin note/comment)
   const handleProjectAction = async (id, action) => {
     setActionLoading(true);
     try {
-      const response = await api.post(
-        `/projects/admin/action/${id}`,
+      const response = await axios.post(
+        `${API_BASE}/projects/admin/action/${id}`,
         { action, adminNote },
         { headers: getAuthHeader() }
       );
@@ -103,6 +120,7 @@ function AdminOverview({ onExit }) {
         setProjectRequests((prev) => prev.filter((item) => item.id !== id));
         setSelectedReq(null);
         setAdminNote('');
+        fetchOverviewStats();
       }
     } catch (error) {
       console.error(`Error performing project ${action} action:`, error);
@@ -117,10 +135,9 @@ function AdminOverview({ onExit }) {
     else window.location.href = '/';
   };
 
-  // ðŸŸ¢ UPDATED: pending requests stat now counts both queues combined
   const stats = [
-    { value: '1,248', label: 'Registered users' },
-    { value: '86', label: 'Active projects' },
+    { value: overviewLoading ? '—' : overview.totalUsers.toLocaleString(), label: 'Registered users' },
+    { value: overviewLoading ? '—' : overview.totalApprovedProjects.toLocaleString(), label: 'Active projects' },
     { value: requests.length + projectRequests.length, label: 'Pending requests' },
     { value: '94%', label: 'Trust score' },
   ];
@@ -132,7 +149,6 @@ function AdminOverview({ onExit }) {
     <div className="w-full min-h-screen bg-[#fbfcfd] font-sans overflow-x-hidden">
       <div className="w-full max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 lg:py-10 space-y-6 sm:space-y-8">
 
-        {/* Top bar */}
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:flex-wrap sm:justify-between sm:gap-4">
           <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
             <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white shadow-sm">
@@ -155,7 +171,6 @@ function AdminOverview({ onExit }) {
           </button>
         </header>
 
-        {/* Title */}
         <div className="space-y-1.5 pt-1 sm:pt-2">
           <div className="flex items-center gap-2 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-emerald-600">
             <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 stroke-[2.2]" />
@@ -166,7 +181,6 @@ function AdminOverview({ onExit }) {
           </h1>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
           {stats.map((stat, idx) => (
             <div
@@ -181,10 +195,8 @@ function AdminOverview({ onExit }) {
           ))}
         </div>
 
-        {/* Two columns */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
 
-          {/* Dynamic Moderation Queue (Collaboration Requests + Project Approvals) */}
           <section className="min-w-0 space-y-4 sm:space-y-5 rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-4 sm:p-7 shadow-sm">
             <div className="flex justify-between items-center">
               <h3 className="text-base sm:text-lg font-bold text-slate-900">Pending Requests Queue</h3>
@@ -192,6 +204,7 @@ function AdminOverview({ onExit }) {
                 onClick={() => {
                   fetchPendingRequests();
                   fetchPendingProjects();
+                  fetchOverviewStats();
                 }}
                 className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all cursor-pointer"
                 title="Refresh requests"
@@ -200,7 +213,6 @@ function AdminOverview({ onExit }) {
               </button>
             </div>
 
-            {/* ðŸŸ¢ NEW: Tabs to switch between the two queues */}
             <div className="flex items-center gap-1 bg-slate-50 rounded-xl p-1 border border-slate-100">
               <button
                 type="button"
@@ -273,7 +285,6 @@ function AdminOverview({ onExit }) {
                   </div>
                 ))
               ) : (
-                // ðŸŸ¢ NEW: Project publish requests list
                 projectRequests.map((item) => (
                   <div
                     key={item.id}
@@ -288,7 +299,7 @@ function AdminOverview({ onExit }) {
                       <p className="font-semibold text-slate-900">{item.title}</p>
                       <p className="text-slate-500 text-[11px]">
                         By <span className="font-medium text-slate-800">{item.ownerName || `User #${item.user_id}`}</span>
-                        {' Â· '}{item.category || item.industry || 'General'}
+                        {' · '}{item.category || item.industry || 'General'}
                       </p>
                     </div>
 
@@ -303,34 +314,34 @@ function AdminOverview({ onExit }) {
             </div>
           </section>
 
-          {/* Recent activity */}
           <section className="min-w-0 space-y-4 sm:space-y-5 rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-4 sm:p-7 shadow-sm">
             <h3 className="text-base sm:text-lg font-bold text-slate-900">Recent platform activity</h3>
             <div className="space-y-3">
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:gap-3 sm:p-4">
-                <p className="min-w-0 break-words text-xs sm:text-sm text-slate-700">32 new projects this week</p>
-                <span className="text-xs text-slate-400 font-medium">Activity</span>
-              </div>
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:gap-3 sm:p-4">
-                <p className="min-w-0 break-words text-xs sm:text-sm text-slate-700">18 users completed profiles</p>
-                <span className="text-xs text-slate-400 font-medium">Activity</span>
-              </div>
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:gap-3 sm:p-4">
-                <p className="min-w-0 break-words text-xs sm:text-sm text-slate-700">7 projects reached team capacity</p>
-                <span className="text-xs text-slate-400 font-medium">Activity</span>
-              </div>
+              {overviewLoading ? (
+                <p className="text-xs text-slate-400 py-4 text-center">Loading activity...</p>
+              ) : overview.recentActivity.length === 0 ? (
+                <p className="text-xs text-slate-400 py-4 text-center">No recent activity.</p>
+              ) : (
+                overview.recentActivity.map((activity, idx) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:gap-3 sm:p-4"
+                  >
+                    <p className="min-w-0 break-words text-xs sm:text-sm text-slate-700">{activity.message}</p>
+                    <span className="text-xs text-slate-400 font-medium">Activity</span>
+                  </div>
+                ))
+              )}
             </div>
           </section>
 
         </div>
       </div>
 
-      {/* MODAL: Request Details & Action â€” ðŸŸ¢ UPDATED: handles both collaboration & project types */}
       {selectedReq && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg space-y-5 rounded-3xl bg-white p-6 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-150">
 
-            {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-slate-100 pb-3.5">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
@@ -358,7 +369,6 @@ function AdminOverview({ onExit }) {
               </button>
             </div>
 
-            {/* Content Details */}
             <div className="space-y-3.5">
               {selectedReqType === 'project' ? (
                 <>
@@ -409,7 +419,6 @@ function AdminOverview({ onExit }) {
                 </>
               )}
 
-              {/* Response Note to User */}
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   {selectedReqType === 'project' ? 'Rejection reason / Note (Optional for approve, recommended for reject)' : 'Response / Note to User (Optional)'}
@@ -424,7 +433,6 @@ function AdminOverview({ onExit }) {
               </div>
             </div>
 
-            {/* Modal Actions */}
             <div className="flex items-center gap-3 pt-2">
               <button
                 type="button"
@@ -462,7 +470,3 @@ function AdminOverview({ onExit }) {
 }
 
 export default AdminOverview;
-
-
-
-

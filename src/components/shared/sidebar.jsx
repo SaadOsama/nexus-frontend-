@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux'; // Redux state access karne ke liye
+import { useSelector } from 'react-redux';
 import {
   Sparkles,
   Search,
@@ -15,9 +15,9 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redux store se counts get karein (apne exact slice name ke hisab se state path adjust kar sakte hain)
-  const unreadMessagesCount = useSelector((state) => state.chat?.unreadCount ?? 0);
-  const pendingRequestsCount = useSelector((state) => state.collaboration?.pendingCount ?? 0);
+  // Redux state se active numbers uthayen
+  const unreadMessagesCount = useSelector((state) => state.user.unreadMessagesCount);
+  const pendingRequestsCount = useSelector((state) => state.user.pendingRequestsCount);
 
   const navItems = [
     { name: 'Overview', icon: LayoutDashboard, path: '/' },
@@ -48,7 +48,7 @@ const Sidebar = () => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            const hasBadge = typeof item.badge === 'number' && item.badge > 0;
+            const showBadge = typeof item.badge === 'number' && item.badge > 0;
 
             return (
               <button
@@ -66,9 +66,9 @@ const Sidebar = () => {
                   <span className="text-left break-words">{item.name}</span>
                 </div>
 
-                {/* Badge sirf tabhi dikhega jab badge count 0 se zyada ho */}
-                {hasBadge && (
-                  <span className="px-1.5 min-w-[20px] h-5 shrink-0 bg-[#0f9f59] text-white text-[11px] font-medium rounded-full flex items-center justify-center">
+                {/* Direct Number Badge: Sirf tabhi dikhega jab number > 0 ho */}
+                {showBadge && (
+                  <span className="min-w-[20px] h-5 px-1.5 shrink-0 bg-[#0f9f59] text-white text-[11px] font-medium rounded-full flex items-center justify-center">
                     {item.badge}
                   </span>
                 )}

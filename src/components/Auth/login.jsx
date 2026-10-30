@@ -1,29 +1,43 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux'; // NEW
 import { Mail, Lock, Eye, EyeOff, User, ShieldCheck, ArrowRight } from 'lucide-react';
-import { useLogin } from "@/api/client/auth";
+import { loginSuccess } from '@/redux/slices/userSlices'; // NEW - adjust path if your slice lives elsewhere
+import { useLogin } from '../../api/client/auth';
 
 export default function Login({ onLoginSuccess }) {
   const navigate = useNavigate();
+  const dispatch = useDispatch(); // NEW
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
-  // useLogin dispatches loginSuccess to Redux (requirement #5) and saves
-  // the token under the "iccd_token" key that both the axios interceptor
-  // and ProtectedRoute rely on. Navigation is handled here, by role,
-  // instead of inside the hook, since where to go depends on this screen.
-  const { userLoginAsync, isPending: loading } = useLogin({
-    onSuccess: (response) => {
-      const user = response?.data?.user;
-      if (onLoginSuccess) onLoginSuccess(user);
-      navigate(user?.role === 'admin' ? '/admin' : '/overview');
-    },
-    onError: (err) => {
-      setError(err?.response?.data?.message || err?.message || 'Login failed');
-    },
-  });
+
+ // Login.jsx
+const { userLoginAsync, isPending: loading } = useLogin({
+  onSuccess: (response) => {
+    const user = response?.data?.user || response?.user;
+    const token = response?.data?.token || response?.token;
+    const refreshToken = response?.data?.refreshToken || response?.refreshToken; // NEW
+
+    // 1. LocalStorage mein save karein
+    if (token) {
+      localStorage.setItem('nexus_token', token);
+    }
+
+    // 2. Redux State Update (NEW - ab active hai, pehle comment out tha)
+    dispatch(loginSuccess({ user, token, refreshToken }));
+
+    if (onLoginSuccess) onLoginSuccess(user);
+
+    // 3. Navigate
+    navigate(user?.role === 'admin' ? '/admin' : '/overview');
+  },
+  onError: (err) => {
+    setError(err?.response?.data?.message || err?.message || 'Login failed');
+  },
+});
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,10 +49,7 @@ export default function Login({ onLoginSuccess }) {
     }
 
     try {
-      // No client-guessed "role" sent — the backend looks the user up by
-      // email/password alone and returns whatever role is actually on
-      // their account. Guessing role from the email string used to break
-      // login for any real admin whose email didn't contain "admin".
+
       await userLoginAsync({ email, password });
     } catch {
       // onError above already set the error message.

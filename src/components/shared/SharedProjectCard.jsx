@@ -50,7 +50,7 @@ export const SharedProjectCard = ({ project }) => {
         </span>
         {project?.match && (
           <span className="text-[#0f9f59] font-semibold">
-            {project.match}% match
+            {project.match}
           </span>
         )}
       </div>

@@ -56,7 +56,7 @@ const ProjectCard = ({ project, onClick }) => {
         </span>
         {project.match && (
           <span className="text-[#0f9f59] font-bold">
-            {project.match}% match
+            {project.match}
           </span>
         )}
       </div>

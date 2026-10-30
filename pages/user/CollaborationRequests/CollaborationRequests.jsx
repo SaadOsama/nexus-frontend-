@@ -14,7 +14,6 @@ import {
 } from '@/api/client/ProjectApprovals';
 import CollaborationRequestCard from './CollaborationRequestCard.jsx';
 import CollaborationRequestDetailModal from './CollaborationRequestDetailModal.jsx';
-
 function normalizeRequests(raw = []) {
   return raw.map((r) => ({
     id: r.id,

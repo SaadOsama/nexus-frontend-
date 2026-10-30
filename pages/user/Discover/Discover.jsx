@@ -110,7 +110,7 @@ const Discover = () => {
           className="hover:opacity-90 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Publish projects</span>
+          <span>Publish project</span>
         </button>
       </div>
 

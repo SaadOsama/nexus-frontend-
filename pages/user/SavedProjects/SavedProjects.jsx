@@ -106,7 +106,7 @@ export default function SavedProjects() {
 
                     <div className="pt-4 border-t border-slate-50 flex items-center justify-between text-xs text-slate-400">
                       <span>{project.stage} · {project.country || project.location}</span>
-                      <span className="font-bold text-[#00a664]">{project.match ?? project.match_score ?? 90}% match</span>
+                      <span className="font-bold text-[#00a664]"></span>
                     </div>
 
                     {!project.isOwner && (
