@@ -2,8 +2,11 @@ import axios from 'axios';
 import { store } from '@/redux/slices/store';
 import { logout } from '@/redux/slices/userSlices';
 
+const rawBase = import.meta.env.VITE_API_BASE_URL || 'https://nexus-backend-fbcotg.fly.dev/api';
+const baseURL = rawBase.endsWith('/api') ? rawBase : `${rawBase}/api`;
+
 const api = axios.create({
-baseURL: import.meta.env.VITE_API_BASE_URL || 'https://nexus-backend-fbcotg.fly.dev/api',
+  baseURL: baseURL,
 });
 
 // Har request ke saath token attach karo
