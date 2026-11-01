@@ -5,14 +5,7 @@ import api from "../axios";
 import { API_ENDPOINTS } from "../endpoint";
 import { loginSuccess } from "../../redux/slices/userSlices";
 
-// IMPORTANT PATTERN used in every hook below:
-// `useMutation({ ...options, onSuccess: (…) => { <our logic>; options.onSuccess?.(…) } })`
-// Previously these hooks did `useMutation({ onSuccess: ourLogic, ...options })`.
-// Because object spread lets a LATER key win, any `options.onSuccess` passed
-// in by a component silently replaced `ourLogic` entirely — e.g. the Redux
-// dispatch in useLogin would just never run if the screen using it passed
-// its own onSuccess (which Login.jsx needs, to navigate by role). Spreading
-// `options` first and composing `onSuccess` last fixes that.
+
 
 export function useLogin(options = {}) {
   const dispatch = useDispatch();

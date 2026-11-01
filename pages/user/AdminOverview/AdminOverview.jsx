@@ -3,7 +3,7 @@ import { ShieldCheck, Sparkles, Check, X, RefreshCw, Eye } from 'lucide-react';
 import axios from 'axios';
 
 // 🟢 FIX: use local backend when running locally, fallback to  for production
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://nexus-backend-fbcotg.fly.dev/api';
 
 function AdminOverview({ onExit }) {
   const [requests, setRequests] = useState([]);

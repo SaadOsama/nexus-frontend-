@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://nexus-backend-fbcotg.fly.dev/api/health';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://nexus-backend-fbcotg.fly.dev/api/projects';
 
 // 🔴 'export const socket' hona chahiye:
 export const socket = io(SOCKET_URL, {

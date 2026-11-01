@@ -41,7 +41,7 @@ const ProjectGrid = ({
       setError(null);
       try {
         // 🟢 Send category and search query params directly to backend API
-        const res = await axios.get(`https://nexus-backend-fbcotg.fly.dev/api/health/projects`, {
+        const res = await axios.get('https://nexus-backend-fbcotg.fly.dev/api/projects', {
           params: {
             page: effectivePage,
             limit: 6,

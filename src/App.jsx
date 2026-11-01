@@ -24,7 +24,7 @@ import ProtectedRoute from './ProtectedRoutes.jsx';
 import PublicRoute from './PublicRoute.jsx';
 
 // 🟢 FIX: same pattern — local backend when running locally,  in production
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api/projects';
 
 export default function App() {
   const dispatch = useDispatch();

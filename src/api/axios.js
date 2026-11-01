@@ -3,7 +3,7 @@ import { store } from '@/redux/slices/store';
 import { logout } from '@/redux/slices/userSlices';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://nexus-backend-fbcotg.fly.dev/api/health',
+baseURL: import.meta.env.VITE_API_BASE_URL || 'https://nexus-backend-fbcotg.fly.dev/api',
 });
 
 // Har request ke saath token attach karo

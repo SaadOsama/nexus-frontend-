@@ -38,7 +38,7 @@ const handleSendMessage = async (e) => {
 
   // 4. REST API Call to Save Message in MariaDB
   try {
-    const response = await fetch('https://nexus-backend-fbcotg.fly.dev/api/health/messages/send', {
+    const response = await fetch('https://nexus-backend-fbcotg.fly.dev/api/projects', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
