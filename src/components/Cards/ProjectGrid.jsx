@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bookmark, Loader2 } from 'lucide-react';
 import { useSelector } from 'react-redux';
+import FeaturedBadge from '../shared/FeaturedBadge';
 import axios from 'axios';
 
 const ProjectGrid = ({
@@ -64,6 +65,7 @@ const ProjectGrid = ({
 
         const normalized = rows.map((p) => ({
           ...p,
+          is_featured: Number(p.is_featured || 0), // FEATURED: normalize flag
           country: p.country ?? p.location ?? '',
           isOwner: Boolean(p.isOwner),
           hasRequested: Boolean(p.hasRequested),
@@ -137,28 +139,36 @@ const ProjectGrid = ({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
       {projects.map((project) => {
         const isSaved = savedProjectIds.includes(project.id);
+        const isFeatured = Number(project.is_featured) === 1; // FEATURED
 
         return (
           <button
             key={project.id}
             type="button"
             onClick={() => handleSelect(project)}
-            className="text-left rounded-2xl border border-slate-200/60 bg-white p-6 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col group min-w-0 w-full"
+            className={`text-left rounded-2xl border bg-white p-6 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col group min-w-0 w-full ${
+              isFeatured
+                ? 'border-amber-300 ring-1 ring-amber-100'
+                : 'border-slate-200/60'
+            }`}
           >
-            <div className="flex items-start justify-between mb-4 w-full">
-              <span
-                style={{ backgroundColor: '#e6f4ea', color: '#0f9f59' }}
-                className="text-xs font-semibold px-3 py-1.5 rounded-full"
-              >
-                {project.category || project.industry || 'General'}
-              </span>
+            <div className="flex items-start justify-between gap-2 mb-4 w-full">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  style={{ backgroundColor: '#e6f4ea', color: '#0f9f59' }}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                >
+                  {project.category || project.industry || 'General'}
+                </span>
+                <FeaturedBadge show={isFeatured} />
+              </div>
 
               <div
                 role="button"
                 tabIndex={0}
                 onClick={(e) => handleBookmarkClick(e, project)}
                 onKeyDown={(e) => e.key === 'Enter' && handleBookmarkClick(e, project)}
-                className="p-1.5 -mr-1 rounded-full hover:bg-slate-100 transition cursor-pointer"
+                className="p-1.5 -mr-1 rounded-full hover:bg-slate-100 transition cursor-pointer shrink-0"
                 title={isSaved ? 'Remove from saved' : 'Save project'}
               >
                 <Bookmark

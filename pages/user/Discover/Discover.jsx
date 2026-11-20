@@ -5,6 +5,8 @@ import ProjectGrid from '@/components/Cards/ProjectGrid';
 import ProjectDetailCard from '@/components/shared/ProjectDetailCard';
 import FilterDropdown from '@/components/Cards/FilterDropdown';
 import OverviewPublishModal from '../Overview/OverviewPublishModal';
+import FeaturedBadge from '../../../src/components/shared/FeaturedBadge'; // FEATURED
+
 import { useToggleSaveProject, useGetSavedProjects } from '@/api/client/projects';
 
 const Discover = () => {
@@ -77,12 +79,19 @@ const Discover = () => {
 
   if (selectedProject) {
     return (
-      <ProjectDetailCard
-        project={selectedProject}
-        onBackToProjects={() => setSelectedProject(null)}
-        isSaved={savedProjectIds.includes(selectedProject.id)}
-        onToggleSave={() => handleToggleSave(selectedProject.id)}
-      />
+      <div className="space-y-3">
+        {Number(selectedProject.is_featured) === 1 && (
+          <div className="flex items-center gap-2">
+            <FeaturedBadge show={true} />
+          </div>
+        )}
+        <ProjectDetailCard
+          project={selectedProject}
+          onBackToProjects={() => setSelectedProject(null)}
+          isSaved={savedProjectIds.includes(selectedProject.id)}
+          onToggleSave={() => handleToggleSave(selectedProject.id)}
+        />
+      </div>
     );
   }
 

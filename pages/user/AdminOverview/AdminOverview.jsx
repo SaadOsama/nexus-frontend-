@@ -720,7 +720,7 @@ function AdminOverview() {
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 focus:border-emerald-600 focus:outline-none"
           >
             <option value="all">All statuses</option>
-            <option value="published">Published</option>
+           <option value="approved">Approved</option>
             <option value="pending_review">Pending review</option>
             <option value="changes_requested">Changes requested</option>
             <option value="draft">Draft</option>

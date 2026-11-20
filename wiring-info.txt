@@ -1,0 +1,49 @@
+﻿
+
+=== 1. Workspace / breadcrumb ===
+src\components\shared\PageHeader.jsx:6: subtitle = "Your workspace for building meaningful things.",
+src\components\shared\TopBar.jsx:38: <span className="text-sm font-medium text-slate-400">Workspace</span>
+src\components\Breadcrumb.jsx:21: export default function Breadcrumb() {
+src\components\Breadcrumb.jsx:25: // Admin area ka root "Admin", baaki sab ka root "Workspace"
+src\components\Breadcrumb.jsx:27: const crumbs = [{ label: isAdmin ? 'Admin' : 'Workspace', to: isAdmin ? '/admin' : '/overview' }];
+src\components\Breadcrumb.jsx:38: <nav aria-label="Breadcrumb" className="breadcrumb">
+src\components\Breadcrumb.jsx:48: {!isLast && <span className="breadcrumb-sep"> / </span>}
+src\pages\Homepage\homepage.jsx:46: 'The collaborative workspace helping teachers make learning more personal for every student.',
+src\pages\Homepage\homepage.jsx:225: Go to Workspace
+
+=== 2. initials / avatar / account menu ===
+src\components\Cards\ProfileHeaderCard.jsx:4: // User name se initials generate karne ka logic (e.g., "Jordan Smith" -> "JS")
+src\components\Cards\ProfileHeaderCard.jsx:5: const getInitials = (name) => {
+src\components\Cards\ProfileHeaderCard.jsx:17: {/* 🟢 Top Section: Same TopBar Style Avatar Circle + User Details */}
+src\components\Cards\ProfileHeaderCard.jsx:20: {/* 🟢 Exactly same TopBar Avatar Circle */}
+src\components\Cards\ProfileHeaderCard.jsx:22: {getInitials(user?.name)}
+src\components\shared\HeaderActions.jsx:3: export const HeaderActions = ({ onNotificationClick, onProfileClick, avatarGradient }) => {
+src\components\shared\HeaderActions.jsx:27: {/* Profile Avatar Block */}
+src\components\shared\HeaderActions.jsx:31: avatarGradient || 'from-amber-400 via-pink-500 to-indigo-600'
+src\components\shared\TopBar.jsx:14: const initials = currentUserName
+src\components\shared\TopBar.jsx:56: {initials}
+src\redux\slices\projectSlices.js:3: const initialState = {
+src\redux\slices\projectSlices.js:28: initialState,
+src\redux\slices\projectSlices.js:61: resetProjectState: () => initialState,
+src\redux\slices\userSlices.js:16: const initialState = {
+src\redux\slices\userSlices.js:28: initialState,
+src\utils\getInitials.js:1: export const getInitials = (name = '') => {
+
+=== 3. greeting / user naam ka source ===
+src\api\axios.js:14: const token = localStorage.getItem('nexus_token');
+src\components\Auth\AuthContainer.jsx:44: <h3>Welcome, {currentUser.name}!</h3>
+src\components\Auth\login.jsx:24: // 1. LocalStorage mein save karein
+src\components\Auth\login.jsx:26: localStorage.setItem('nexus_token', token);
+src\components\Auth\login.jsx:96: <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">Welcome back</h1>
+src\components\shared\TopBar.jsx:30: dispatch(logout()); // Redux state clear + localStorage clear (token, user, refreshToken sab)
+src\redux\slices\userSlices.js:6: const item = localStorage.getItem('nexus_user');
+src\redux\slices\userSlices.js:13: const token = localStorage.getItem('nexus_token');
+src\redux\slices\userSlices.js:36: if (token) localStorage.setItem('nexus_token', token);
+src\redux\slices\userSlices.js:37: if (refreshToken) localStorage.setItem('nexus_refresh_token', refreshToken);
+src\redux\slices\userSlices.js:38: if (user) localStorage.setItem('nexus_user', JSON.stringify(user));
+src\redux\slices\userSlices.js:47: localStorage.removeItem('nexus_token');
+src\redux\slices\userSlices.js:48: localStorage.removeItem('nexus_refresh_token');
+src\redux\slices\userSlices.js:49: localStorage.removeItem('nexus_user');
+src\ProtectedRoutes.jsx:11: // 2. Direct Sync LocalStorage Check (No Delay)
+src\ProtectedRoutes.jsx:12: const token = localStorage.getItem('nexus_token');
+src\ProtectedRoutes.jsx:23: // Agar Redux State true ho YA Direct LocalStorage me valid token pada ho, access allow karein
