@@ -7,6 +7,9 @@ import axios from 'axios';
 import Layout from './components/shared/layout.jsx';
 import Login from './components/Auth/login.jsx';
 import Signup from './components/Auth/Signup.jsx';
+import ProtectedRoute from './ProtectedRoutes.jsx';
+import PublicRoute from './PublicRoute.jsx';
+import PublicProjectDetail from "./pages/Homepage/PublicProjectDetail.jsx";
 
 // Pages
 import HomePage from '../pages/Homepage/homepage.jsx';
@@ -20,11 +23,10 @@ import Notifications from '../pages/user/Notifications/Notifications.jsx';
 import CollaborationRequests from '../pages/user/CollaborationRequests/CollaborationRequests.jsx';
 import SavedProjects from '../pages/user/SavedProjects/SavedProjects.jsx';
 import AdminOverview from '../pages/user/AdminOverview/AdminOverview.jsx';
-import ProtectedRoute from './ProtectedRoutes.jsx';
-import PublicRoute from './PublicRoute.jsx';
 
-// 🟢 FIX: same pattern — local backend when running locally,  in production
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api/projects';
+
+// Clean API base URL (without trailing '/projects' so all endpoints resolve cleanly)
+const API_BASE = (import.meta.env.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api').replace(/\/+$/, '');
 
 export default function App() {
   const dispatch = useDispatch();
@@ -33,24 +35,23 @@ export default function App() {
   useEffect(() => {
     const fetchBadgeCounts = async () => {
       try {
-        // 🟢 FIX: uses API_BASE now, correct '/messages/counts' path (no '/health/')
         const response = await axios.get(`${API_BASE}/messages/counts`, {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
 
-        if (response.data.success) {
+        if (response.data?.success) {
           dispatch({
             type: 'user/setBadgeCounts',
             payload: {
-              unreadMessages: response.data.unreadMessages,
-              pendingRequests: response.data.pendingRequests,
-            }
+              unreadMessages: response.data.unreadMessages ?? 0,
+              pendingRequests: response.data.pendingRequests ?? 0,
+            },
           });
         }
       } catch (error) {
-        console.error('❌ Error fetching badge counts:', error);
+        console.error('Error fetching badge counts:', error);
       }
     };
 
@@ -61,10 +62,25 @@ export default function App() {
 
   return (
     <Routes>
-      {/* Public Routes */}
+      {/* Public Routes (Accessible to logged-out visitors) */}
       <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+      <Route path="/projects/:id" element={<PublicProjectDetail />} />
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <Login />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <PublicRoute>
+            <Signup />
+          </PublicRoute>
+        }
+      />
 
       {/* Admin Route */}
       <Route
@@ -101,7 +117,7 @@ export default function App() {
         path="*"
         element={
           <Navigate
-            to={isAuthenticated ? (user?.role === 'admin' ? '/admin' : '/overview') : '/login'}
+            to={isAuthenticated ? (user?.role === 'admin' ? '/admin' : '/overview') : '/'}
             replace
           />
         }
