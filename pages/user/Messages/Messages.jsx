@@ -248,6 +248,13 @@ const Messages = () => {
     formatConversationLabel(c.name, c.projectTitle).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Header text: "{owner full name} · {project name}"
+  const headerTitle = activeConversation
+    ? activeConversation.projectTitle
+      ? `${activeConversation.name} · ${activeConversation.projectTitle}`
+      : activeConversation.name
+    : '';
+
   return (
     <div className="w-full max-w-6xl mx-auto h-[calc(100vh-120px)] p-2 sm:p-4">
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm h-full flex overflow-hidden">
@@ -310,22 +317,21 @@ const Messages = () => {
         </div>
 
         {/* Right Main Chat Window */}
-        <div className="hidden sm:flex flex-1 flex-col h-full bg-white">
+        <div className="hidden sm:flex flex-1 min-w-0 flex-col h-full bg-white">
           {activeConversation ? (
             <>
-              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#0f9f59]/10 text-[#0f9f59] flex items-center justify-center font-bold text-sm">
+              {/* Chat header: "{name} · {project}" with ellipsis, no "Online" label */}
+              <div className="p-4 border-b border-slate-100 flex items-center bg-white">
+                <div className="flex items-center gap-3 min-w-0 w-full">
+                  <div className="w-10 h-10 rounded-full bg-[#0f9f59]/10 text-[#0f9f59] flex items-center justify-center font-bold text-sm shrink-0">
                     {activeConversation.name ? activeConversation.name.charAt(0).toUpperCase() : 'U'}
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900">
-                      {formatConversationLabel(activeConversation.name, activeConversation.projectTitle)}
-                    </h3>
-                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
-                    </span>
-                  </div>
+                  <h3
+                    className="text-sm font-bold text-slate-900 truncate min-w-0 flex-1"
+                    title={headerTitle}
+                  >
+                    {headerTitle}
+                  </h3>
                 </div>
               </div>
 

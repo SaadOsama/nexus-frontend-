@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import NotificationItem from '/src/components/shared/NotificationItem';
 import api from '/src/api/axios.js';
 
+
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,6 +21,12 @@ const Notifications = () => {
   useEffect(() => {
     fetchNotifications();
   }, []);
+
+  useEffect(() => {
+  fetchNotifications();
+  window.addEventListener('notification_updated', fetchNotifications);
+  return () => window.removeEventListener('notification_updated', fetchNotifications);
+}, []);
 
   const handleItemClick = async (id) => {
     // Optimistic UI update
