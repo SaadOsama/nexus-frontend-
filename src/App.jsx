@@ -25,8 +25,6 @@ import CollaborationRequests from '../pages/user/CollaborationRequests/Collabora
 import SavedProjects from '../pages/user/SavedProjects/SavedProjects.jsx';
 import AdminOverview from '../pages/user/AdminOverview/AdminOverview.jsx';
 
-// Admin console (nav, Projects, Users)
-import { AdminLayout, ProjectsPage, UsersPage } from '../pages/admin/AdminConsole.jsx';
 
 // Clean API base URL (without trailing '/projects' so all endpoints resolve cleanly)
 const API_BASE = (import.meta.env.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api').replace(/\/+$/, '');
