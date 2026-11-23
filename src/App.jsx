@@ -8,6 +8,7 @@ import Layout from './components/shared/layout.jsx';
 import Login from './components/Auth/login.jsx';
 import Signup from './components/Auth/Signup.jsx';
 import ProtectedRoute from './ProtectedRoutes.jsx';
+import { AdminLayout, ProjectsPage, UsersPage } from '../pages/user/AdminOverview/AdminConsole.jsx';
 import PublicRoute from './PublicRoute.jsx';
 import PublicProjectDetail from "./pages/Homepage/PublicProjectDetail.jsx";
 
@@ -24,6 +25,8 @@ import CollaborationRequests from '../pages/user/CollaborationRequests/Collabora
 import SavedProjects from '../pages/user/SavedProjects/SavedProjects.jsx';
 import AdminOverview from '../pages/user/AdminOverview/AdminOverview.jsx';
 
+// Admin console (nav, Projects, Users)
+import { AdminLayout, ProjectsPage, UsersPage } from '../pages/admin/AdminConsole.jsx';
 
 // Clean API base URL (without trailing '/projects' so all endpoints resolve cleanly)
 const API_BASE = (import.meta.env.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api').replace(/\/+$/, '');
@@ -82,15 +85,20 @@ export default function App() {
         }
       />
 
-      {/* Admin Route */}
+      {/* Admin Routes (left navigation: Overview, Review queue, Projects, Users) */}
       <Route
         path="/admin"
         element={
           <ProtectedRoute allowedRoles={['admin']}>
-            <AdminOverview />
+            <AdminLayout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<AdminOverview />} />
+        <Route path="review" element={<AdminOverview />} />
+        <Route path="projects" element={<ProjectsPage />} />
+        <Route path="users" element={<UsersPage />} />
+      </Route>
 
       {/* Protected User Routes */}
       <Route

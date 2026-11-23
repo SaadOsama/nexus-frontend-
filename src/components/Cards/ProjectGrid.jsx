@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bookmark, Loader2 } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import FeaturedBadge from '../shared/FeaturedBadge';
@@ -9,10 +9,10 @@ const ProjectGrid = ({
   onOpen,
   savedProjectIds = [],
   onToggleSave,
-  searchQuery = '',
-  selectedCategory = 'All projects',
+  filters = {},
   currentPage = 1,
   onPaginationData,
+  onClearAll,
 }) => {
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,52 +20,39 @@ const ProjectGrid = ({
 
   const currentUser = useSelector((state) => state.user?.user);
 
-  // 🟢 FIX: Track previous filter values so we can detect a filter change
-  // and force page=1, even if the parent forgot to reset currentPage.
-  const prevFiltersRef = useRef({ selectedCategory, searchQuery });
+  const filterKey = JSON.stringify(filters);
 
   useEffect(() => {
     let isMounted = true;
-
-    const filtersChanged =
-      prevFiltersRef.current.selectedCategory !== selectedCategory ||
-      prevFiltersRef.current.searchQuery !== searchQuery;
-
-    // If category or search changed since the last fetch, always fetch page 1.
-    // Otherwise respect the page the parent is asking for.
-    const effectivePage = filtersChanged ? 1 : currentPage;
-
-    prevFiltersRef.current = { selectedCategory, searchQuery };
+    const f = JSON.parse(filterKey);
 
     const fetchProjects = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        // 🟢 Send category and search query params directly to backend API
         const res = await axios.get('https://nexus-backend-fbcotg.fly.dev/api/projects', {
           params: {
-            page: effectivePage,
+            page: currentPage,
             limit: 6,
             current_user_id: currentUser?.id || undefined,
-            category:
-              selectedCategory === 'All projects' || selectedCategory === 'All'
-                ? undefined
-                : selectedCategory,
-            search: searchQuery.trim() || undefined,
+            q: f.q || undefined,
+            industry: f.industry?.length ? f.industry.join(',') : undefined,
+            stage: f.stage?.length ? f.stage.join(',') : undefined,
+            country: f.country || undefined,
+            funding: f.funding || undefined,
+            sort: f.sort || undefined,
           },
         });
 
-        const rows = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        const rows = Array.isArray(res.data) ? res.data : res.data?.data || [];
 
         if (isMounted && res.data?.pagination && onPaginationData) {
-          // 🟢 Pass currentPage back too, so parent can sync its own state
-          // if it's listening (e.g. setCurrentPage(res.pagination.currentPage))
           onPaginationData(res.data.pagination);
         }
 
         const normalized = rows.map((p) => ({
           ...p,
-          is_featured: Number(p.is_featured || 0), // FEATURED: normalize flag
+          is_featured: Number(p.is_featured || 0),
           country: p.country ?? p.location ?? '',
           isOwner: Boolean(p.isOwner),
           hasRequested: Boolean(p.hasRequested),
@@ -93,7 +80,8 @@ const ProjectGrid = ({
     return () => {
       isMounted = false;
     };
-  }, [currentPage, currentUser?.id, selectedCategory, searchQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, currentUser?.id, filterKey]);
 
   const handleSelect = (project) => {
     if (onSelectProject) onSelectProject(project);
@@ -129,8 +117,21 @@ const ProjectGrid = ({
 
   if (projects.length === 0) {
     return (
-      <div className="border border-dashed border-slate-200 rounded-2xl p-12 text-center text-sm text-slate-400 bg-slate-50/50 w-full">
-        No projects match your search or filter.
+      <div className="border border-dashed border-slate-200 rounded-2xl p-10 text-center bg-slate-50/50 w-full space-y-3">
+        <p className="text-sm text-slate-500">
+          No projects match your search or filters. Try removing a filter or searching for
+          something else.
+        </p>
+        {onClearAll && (
+          <button
+            type="button"
+            onClick={onClearAll}
+            className="text-xs font-semibold text-white px-4 py-2 rounded-xl cursor-pointer hover:opacity-90"
+            style={{ backgroundColor: '#0f9f59' }}
+          >
+            Clear all
+          </button>
+        )}
       </div>
     );
   }
@@ -139,7 +140,7 @@ const ProjectGrid = ({
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
       {projects.map((project) => {
         const isSaved = savedProjectIds.includes(project.id);
-        const isFeatured = Number(project.is_featured) === 1; // FEATURED
+        const isFeatured = Number(project.is_featured) === 1;
 
         return (
           <button
@@ -147,9 +148,7 @@ const ProjectGrid = ({
             type="button"
             onClick={() => handleSelect(project)}
             className={`text-left rounded-2xl border bg-white p-6 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col group min-w-0 w-full ${
-              isFeatured
-                ? 'border-amber-300 ring-1 ring-amber-100'
-                : 'border-slate-200/60'
+              isFeatured ? 'border-amber-300 ring-1 ring-amber-100' : 'border-slate-200/60'
             }`}
           >
             <div className="flex items-start justify-between gap-2 mb-4 w-full">
@@ -199,7 +198,10 @@ const ProjectGrid = ({
 
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100 gap-2">
               <span className="text-sm text-slate-400 truncate">
-                {project.stage} {project.country || project.location ? `· ${project.country || project.location}` : ''}
+                {project.stage}{' '}
+                {project.country || project.location
+                  ? `· ${project.country || project.location}`
+                  : ''}
               </span>
             </div>
           </button>
