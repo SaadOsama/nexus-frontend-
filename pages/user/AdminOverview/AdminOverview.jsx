@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   ShieldCheck,
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { logout } from '@/redux/slices/userSlices';
+import { ActivityPanel } from './AdminConsole.jsx';
 
 const API_BASE =
   import.meta.env?.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api';
@@ -71,7 +72,17 @@ function AdminOverview() {
   const dispatch = useDispatch();
   const currentUser = useSelector((state) => state.user?.user || state.auth?.user || null);
 
-  const [activeNav, setActiveNav] = useState('overview');
+const location = useLocation();
+const activeNav = location.pathname.endsWith('/review') ? 'queue' : 'overview';
+const setActiveNav = (id) => {
+  const map = {
+    overview: '/admin',
+    queue: '/admin/review',
+    projects: '/admin/projects',
+    users: '/admin/users',
+  };
+  navigate(map[id] || '/admin');
+};
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Overview & queues state
@@ -654,43 +665,7 @@ function AdminOverview() {
     </section>
   );
 
-  const renderActivityCard = () => (
-    <section className="min-w-0 space-y-4 sm:space-y-5 rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-4 sm:p-7 shadow-sm">
-      <h3 className="text-base sm:text-lg font-bold text-slate-900">Recent platform activity</h3>
-      <div className="space-y-3">
-        {overviewLoading ? (
-          <p className="text-xs text-slate-400 py-4 text-center">Loading activity...</p>
-        ) : overview.recentActivity.length === 0 ? (
-          <p className="text-xs text-slate-400 py-4 text-center">No recent activity.</p>
-        ) : (
-          overview.recentActivity.map((activity, idx) => (
-            <div
-              key={activity.id || idx}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:gap-3 sm:p-4 border border-slate-100"
-            >
-              <div className="min-w-0 break-words space-y-0.5">
-                <p className="text-xs sm:text-sm font-medium text-slate-800">
-                  {activity.message || activity.action || 'Admin action'}
-                </p>
-                {(activity.actor_name || activity.actor || activity.target_name || activity.target) && (
-                  <p className="text-[11px] text-slate-500">
-                    {activity.actor_name || activity.actor || 'Admin'}
-                    {(activity.target_name || activity.target) &&
-                      ` · ${activity.target_name || activity.target}`}
-                  </p>
-                )}
-              </div>
-              <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
-                {activity.created_at || activity.timestamp
-                  ? formatDateTime(activity.created_at || activity.timestamp)
-                  : 'Activity'}
-              </span>
-            </div>
-          ))
-        )}
-      </div>
-    </section>
-  );
+ const renderActivityCard = () => <ActivityPanel />;
 
   const renderProjectsTab = () => (
     <section className="min-w-0 space-y-4 sm:space-y-5 rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-4 sm:p-7 shadow-sm">
@@ -984,7 +959,7 @@ function AdminOverview() {
   return (
     <div className="w-full min-h-screen bg-[#fbfcfd] font-sans overflow-x-hidden flex flex-col lg:flex-row">
       {/* Left Navigation (Desktop) */}
-      <aside className="hidden lg:flex lg:w-64 lg:shrink-0 lg:flex-col lg:justify-between border-r border-slate-200/80 bg-white px-4 py-6">
+    <aside className="hidden">
         <div className="space-y-6">
           <div className="flex items-center gap-2.5 px-2">
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white shadow-sm">

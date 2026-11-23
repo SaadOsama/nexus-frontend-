@@ -8,7 +8,6 @@ import Layout from './components/shared/layout.jsx';
 import Login from './components/Auth/login.jsx';
 import Signup from './components/Auth/Signup.jsx';
 import ProtectedRoute from './ProtectedRoutes.jsx';
-import { AdminLayout, ProjectsPage, UsersPage } from '../pages/user/AdminOverview/AdminConsole.jsx';
 import PublicRoute from './PublicRoute.jsx';
 import PublicProjectDetail from "./pages/Homepage/PublicProjectDetail.jsx";
 
@@ -23,10 +22,12 @@ import Profile from '../pages/user/Profile/Profile.jsx';
 import Notifications from '../pages/user/Notifications/Notifications.jsx';
 import CollaborationRequests from '../pages/user/CollaborationRequests/CollaborationRequests.jsx';
 import SavedProjects from '../pages/user/SavedProjects/SavedProjects.jsx';
+
+// Admin console
 import AdminOverview from '../pages/user/AdminOverview/AdminOverview.jsx';
+import { AdminLayout, ProjectsPage, UsersPage } from '../pages/user/AdminOverview/AdminConsole.jsx';
 
-
-// Clean API base URL (without trailing '/projects' so all endpoints resolve cleanly)
+// Clean API base URL
 const API_BASE = (import.meta.env.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api').replace(/\/+$/, '');
 
 export default function App() {
@@ -37,9 +38,7 @@ export default function App() {
     const fetchBadgeCounts = async () => {
       try {
         const response = await axios.get(`${API_BASE}/messages/counts`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         if (response.data?.success) {
@@ -63,27 +62,13 @@ export default function App() {
 
   return (
     <Routes>
-      {/* Public Routes (Accessible to logged-out visitors) */}
+      {/* Public Routes */}
       <Route path="/" element={<HomePage />} />
       <Route path="/projects/:id" element={<PublicProjectDetail />} />
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/signup"
-        element={
-          <PublicRoute>
-            <Signup />
-          </PublicRoute>
-        }
-      />
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
 
-      {/* Admin Routes (left navigation: Overview, Review queue, Projects, Users) */}
+      {/* Admin Routes (left nav: Overview, Review queue, Projects, Users) */}
       <Route
         path="/admin"
         element={
@@ -118,7 +103,7 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
       </Route>
 
-      {/* Fallback Catch-all */}
+      {/* Fallback */}
       <Route
         path="*"
         element={
