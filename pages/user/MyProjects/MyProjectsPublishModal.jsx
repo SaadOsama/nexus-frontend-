@@ -169,6 +169,7 @@ const PublishProjectModal = ({
   };
 
   const buildPayload = (statusValue) => {
+    const isDraft = statusValue === "draft";
     const cleanTitle = formData.title.trim();
     const cleanDescription = formData.description.trim();
     const cleanIndustry = formData.industry.trim();
@@ -177,18 +178,22 @@ const PublishProjectModal = ({
     const cleanLookingFor = formData.lookingFor.trim();
     const derivedTags = [cleanIndustry, cleanStage].filter(Boolean);
 
+    // Draft mein khali fields khali (null) rehti hain, submit par defaults lagte hain
+    const orDefault = (value, fallback) => value || (isDraft ? null : fallback);
+
     return {
       ...(editingProject?.id ? { id: editingProject.id } : {}),
       user_id: user.id,
       status: statusValue,
+      saveAsDraft: isDraft,
       title: cleanTitle,
-      description: cleanDescription || (statusValue === "draft" ? "Draft in progress" : ""),
-      category: cleanIndustry || "General",
-      industry: cleanIndustry || "General",
-      stage: cleanStage || "Idea",
-      location: cleanCountry || "Pakistan",
-      country: cleanCountry || "Pakistan",
-      looking_for: cleanLookingFor || "Feedback",
+      description: cleanDescription,
+      category: orDefault(cleanIndustry, "General"),
+      industry: orDefault(cleanIndustry, "General"),
+      stage: orDefault(cleanStage, "Idea"),
+      location: orDefault(cleanCountry, "Pakistan"),
+      country: orDefault(cleanCountry, "Pakistan"),
+      looking_for: orDefault(cleanLookingFor, "Feedback"),
       match_score: 90,
       tags: derivedTags,
     };
