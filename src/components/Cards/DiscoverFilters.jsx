@@ -1,16 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { Search, X, ChevronDown } from 'lucide-react';
+import { Search, X, ChevronDown, Check } from 'lucide-react';
 
 const API_BASE_URL = 'https://nexus-backend-fbcotg.fly.dev/api';
 
 export const INDUSTRIES = ['Climate & Energy', 'Health & Wellness', 'Education', 'Fintech'];
-export const STAGES = ['MVP', 'Early Stage', 'Scaling'];
+export const STAGES = [
+  'Idea',
+  'Research',
+  'Prototype',
+  'MVP',
+  'Early Revenue',
+  'Scaling',
+  'Established Business',
+];
 const FUNDING = [
+  { value: 'not-seeking', label: 'Not seeking' },
   { value: 'under-10k', label: 'Under $10k' },
-  { value: '10k-50k', label: '$10k – $50k' },
-  { value: '50k-250k', label: '$50k – $250k' },
-  { value: '250k-plus', label: '$250k+' },
+  { value: '10k-50k', label: '$10k to $50k' },
+  { value: '50k-250k', label: '$50k to $250k' },
+  { value: '250k-1m', label: '$250k to $1M' },
+  { value: 'over-1m', label: 'Over $1M' },
 ];
 const SORTS = [
   { value: 'featured', label: 'Featured first' },
@@ -18,8 +28,8 @@ const SORTS = [
   { value: 'az', label: 'A to Z' },
 ];
 
-const selectClass =
-  'w-full px-3 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 cursor-pointer';
+const triggerClass =
+  'w-full px-3.5 py-2.5 text-xs font-medium text-slate-700 bg-white border border-slate-200 rounded-xl hover:border-slate-300 focus:outline-none focus:border-[#0f9f59] transition-all cursor-pointer flex items-center justify-between gap-2 text-left shadow-[0_1px_2px_rgba(0,0,0,0.02)]';
 
 function MultiSelect({ label, options, selected, onChange }) {
   const [open, setOpen] = useState(false);
@@ -41,35 +51,112 @@ function MultiSelect({ label, options, selected, onChange }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`${selectClass} flex items-center justify-between gap-2 text-left`}
+        className={`${triggerClass} ${
+          selected.length > 0 ? 'border-[#0f9f59]/50 bg-[#e6f4ea]/30 text-slate-900' : ''
+        }`}
       >
         <span className="truncate">
           {label}
           {selected.length > 0 && (
-            <span className="ml-1.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+            <span className="ml-1.5 rounded-full bg-[#e6f4ea] px-1.5 py-0.5 text-[10px] font-bold text-[#0f9f59]">
               {selected.length}
             </span>
           )}
         </span>
-        <ChevronDown className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+        <ChevronDown
+          className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform ${
+            open ? 'rotate-180 text-[#0f9f59]' : ''
+          }`}
+        />
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 w-full min-w-[180px] rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
-          {options.map((opt) => (
-            <label
-              key={opt}
-              className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-slate-700 hover:bg-slate-50 cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                checked={selected.includes(opt)}
-                onChange={() => toggle(opt)}
-                className="accent-emerald-600"
-              />
-              {opt}
-            </label>
-          ))}
+        <div className="absolute z-30 mt-1.5 w-full min-w-[200px] rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-lg">
+          {options.map((opt) => {
+            const isChecked = selected.includes(opt);
+            return (
+              <label
+                key={opt}
+                className={`flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-xs transition-colors cursor-pointer ${
+                  isChecked
+                    ? 'bg-[#e6f4ea] text-[#0f9f59] font-semibold'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span className="flex items-center gap-2 truncate">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggle(opt)}
+                    className="accent-[#0f9f59] rounded cursor-pointer"
+                  />
+                  <span className="truncate">{opt}</span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SingleSelect({ placeholder, options, value, onChange, className = '' }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const close = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  const selectedOption = options.find((opt) => opt.value === value);
+  const displayLabel = selectedOption ? selectedOption.label : placeholder;
+  const isFiltered = Boolean(value) && value !== 'featured';
+
+  return (
+    <div className={`relative ${className}`} ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={`${triggerClass} ${
+          isFiltered ? 'border-[#0f9f59]/50 bg-[#e6f4ea]/30 text-slate-900' : ''
+        }`}
+      >
+        <span className="truncate">{displayLabel}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 shrink-0 text-slate-400 transition-transform ${
+            open ? 'rotate-180 text-[#0f9f59]' : ''
+          }`}
+        />
+      </button>
+
+      {open && (
+        <div className="absolute z-30 mt-1.5 w-full min-w-[190px] max-h-60 overflow-y-auto rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-lg">
+          {options.map((opt) => {
+            const isSelected = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-xs text-left transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#e6f4ea] text-[#0f9f59] font-semibold'
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span className="truncate">{opt.label}</span>
+                {isSelected && <Check className="w-3.5 h-3.5 shrink-0 text-[#0f9f59]" />}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
@@ -94,16 +181,57 @@ export default function DiscoverFilters({
 
   useEffect(() => {
     let alive = true;
-    axios
-      .get(`${API_BASE_URL}/projects/filter-options`)
-      .then((res) => alive && setCountries(res.data?.countries || []))
-      .catch(() => {});
+
+    const loadCountries = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/projects/filter-options`);
+        const list = res.data?.countries || res.data?.data?.countries || [];
+        if (alive && Array.isArray(list) && list.length > 0) {
+          setCountries(list);
+          return;
+        }
+      } catch {
+        // Fallback neeche chalega
+      }
+
+      // Fallback: published projects se unique countries nikalna
+      try {
+        const res = await axios.get(`${API_BASE_URL}/projects`, {
+          params: { page: 1, limit: 100 },
+        });
+        const rows = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        const unique = Array.from(
+          new Set(
+            rows
+              .map((p) => (p.country || p.location || '').trim())
+              .filter(Boolean)
+              .map((c) => c.charAt(0).toUpperCase() + c.slice(1))
+          )
+        ).sort((a, b) => a.localeCompare(b));
+
+        if (alive) setCountries(unique);
+      } catch {
+        // Ignore
+      }
+    };
+
+    loadCountries();
     return () => {
       alive = false;
     };
   }, []);
 
-  const countryOptions = country && !countries.includes(country) ? [country, ...countries] : countries;
+  const countryList =
+    country && !countries.some((c) => c.toLowerCase() === country.toLowerCase())
+      ? [country, ...countries]
+      : countries;
+
+  const countryOptions = [
+    { value: '', label: 'All countries' },
+    ...countryList.map((c) => ({ value: c, label: c })),
+  ];
+
+  const fundingOptions = [{ value: '', label: 'Any funding' }, ...FUNDING];
 
   return (
     <div className="space-y-3">
@@ -143,44 +271,25 @@ export default function DiscoverFilters({
           selected={stage}
           onChange={(v) => onChange({ stage: v })}
         />
-        <select
+        <SingleSelect
+          placeholder="All countries"
+          options={countryOptions}
           value={country}
-          onChange={(e) => onChange({ country: e.target.value })}
-          className={selectClass}
-          aria-label="Country"
-        >
-          <option value="">All countries</option>
-          {countryOptions.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-        <select
+          onChange={(val) => onChange({ country: val })}
+        />
+        <SingleSelect
+          placeholder="Any funding"
+          options={fundingOptions}
           value={funding}
-          onChange={(e) => onChange({ funding: e.target.value })}
-          className={selectClass}
-          aria-label="Funding requirement"
-        >
-          <option value="">Any funding</option>
-          {FUNDING.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>
-        <select
+          onChange={(val) => onChange({ funding: val })}
+        />
+        <SingleSelect
+          placeholder="Featured first"
+          options={SORTS}
           value={sort}
-          onChange={(e) => onChange({ sort: e.target.value })}
-          className={`${selectClass} col-span-2 lg:col-span-1`}
-          aria-label="Sort"
-        >
-          {SORTS.map((s) => (
-            <option key={s.value} value={s.value}>
-              {s.label}
-            </option>
-          ))}
-        </select>
+          onChange={(val) => onChange({ sort: val })}
+          className="col-span-2 lg:col-span-1"
+        />
       </div>
 
       <div className="flex items-center justify-between gap-3 text-xs">

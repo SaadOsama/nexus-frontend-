@@ -49,8 +49,12 @@ const Discover = () => {
     );
   };
 
-  // ---------- Search: 300 ms debounce ----------
+  // ---------- Search: 300 ms debounce + URL sync ----------
   const [searchInput, setSearchInput] = useState(q);
+
+  useEffect(() => {
+    setSearchInput(q);
+  }, [q]);
 
   useEffect(() => {
     if (searchInput.trim() === q) return undefined;

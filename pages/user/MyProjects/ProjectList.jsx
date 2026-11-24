@@ -1,29 +1,51 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useSelector } from "react-redux";
 
-// 🟢 Local components in pages/user/MyProjects/
+// Local components in pages/user/MyProjects/
 import MyProjectsItemCard from "./MyProjectsItemCard";
 import MyProjectsPublishModal from "./MyProjectsPublishModal";
 
-// 🟢 Shared component in src/components/shared/
+// Shared component in src/components/shared/
 import ProjectDetailCard from "../../../src/components/shared/ProjectDetailCard";
 
 import { Sparkles, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
-import { useGetMyProjects } from "../../../src/api/client/projects";
+import {
+  useGetMyProjects,
+  useUpdateProject,
+  useDeleteProject,
+  useSubmitProjectDraft,
+} from "../../../src/api/client/projects";
+
+const STATUS_TABS = [
+  { key: "all", label: "All" },
+  { key: "draft", label: "Draft" },
+  { key: "pending-review", label: "Pending review" },
+  { key: "changes-requested", label: "Changes requested" },
+  { key: "published", label: "Published" },
+  { key: "rejected", label: "Rejected" },
+];
+
+const normalizeStatus = (raw) =>
+  String(raw || "")
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-");
 
 export default function ProjectList() {
   const [selectedProject, setSelectedProject] = useState(null);
+  const [editingProject, setEditingProject] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  // 🟢 FIX: page state drives real backend pagination (6 projects per page).
+  const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Fetch logged-in user's projects dynamically from API, paginated.
   const {
     data,
     isLoading,
     isError,
   } = useGetMyProjects({ page: currentPage, limit: 6 });
+
+  const { mutateAsync: updateProject } = useUpdateProject();
+  const { mutateAsync: deleteProject } = useDeleteProject();
+  const { mutateAsync: submitDraft } = useSubmitProjectDraft();
 
   const projects = data?.rows || [];
   const pagination = data?.pagination || {
@@ -34,8 +56,21 @@ export default function ProjectList() {
     hasPrevPage: false,
   };
 
-  // Redux user state
   const currentUser = useSelector((state) => state.user?.user);
+
+  const filteredProjects = useMemo(() => {
+    if (statusFilter === "all") return projects;
+    return projects.filter((p) => {
+      const s = normalizeStatus(p?.status);
+      if (statusFilter === "pending-review") {
+        return s === "pending-review" || s === "pending";
+      }
+      if (statusFilter === "published") {
+        return s === "published" || s === "approved";
+      }
+      return s === statusFilter;
+    });
+  }, [projects, statusFilter]);
 
   if (selectedProject) {
     return (
@@ -52,10 +87,43 @@ export default function ProjectList() {
     setCurrentPage(page);
   };
 
+  const handleOpenCreate = () => {
+    setEditingProject(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditProject = (project) => {
+    setEditingProject(project);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteDraft = async (project) => {
+    if (!project?.id) return;
+    try {
+      await deleteProject(project.id);
+    } catch (err) {
+      console.error("Failed to delete draft:", err);
+    }
+  };
+
+  const handleSubmitDraft = async (project) => {
+    if (!project?.id) return;
+    try {
+      await submitDraft(project);
+    } catch (err) {
+      console.error("Failed to submit draft:", err);
+    }
+  };
+
+  const handleUpdateModalProject = async (payload) => {
+    if (!payload?.id) return;
+    await updateProject(payload);
+  };
+
   return (
-    <div className="min-h-screen bg-white p-6 md:p-8 space-y-8 font-sans">
+    <div className="min-h-screen bg-white p-4 sm:p-6 md:p-8 space-y-8 font-sans">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 pt-1">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pt-1">
         <div className="space-y-1">
           <span className="text-[11px] font-extrabold text-[#0f9f59] tracking-wider uppercase">
             PROJECT NEXUS
@@ -70,8 +138,8 @@ export default function ProjectList() {
 
         <button
           type="button"
-          onClick={() => setIsModalOpen(true)}
-          style={{ backgroundColor: '#00a664', color: '#ffffff' }}
+          onClick={handleOpenCreate}
+          style={{ backgroundColor: "#00a664", color: "#ffffff" }}
           className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-sm active:scale-95"
         >
           <span className="text-lg leading-none font-normal">+</span>
@@ -79,13 +147,39 @@ export default function ProjectList() {
         </button>
       </div>
 
+      {/* Status Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {STATUS_TABS.map((tab) => {
+          const active = statusFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setStatusFilter(tab.key)}
+              style={
+                active
+                  ? { backgroundColor: "#0f9f59", color: "#ffffff" }
+                  : undefined
+              }
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
+                active
+                  ? "shadow-xs"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200/70"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Projects Grid Section */}
-      <div className="space-y-5 pt-2">
+      <div className="space-y-5 pt-1">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-900">My projects</h2>
           {pagination.totalProjects > 0 && (
             <span className="text-xs text-gray-400 font-medium">
-              {pagination.totalProjects} project{pagination.totalProjects === 1 ? '' : 's'} total
+              {pagination.totalProjects} project{pagination.totalProjects === 1 ? "" : "s"} total
             </span>
           )}
         </div>
@@ -98,21 +192,21 @@ export default function ProjectList() {
           <div className="border border-dashed border-red-200 rounded-2xl p-12 text-center text-sm text-red-400 bg-red-50/50">
             Could not load your projects. Please try again.
           </div>
-        ) : projects.length > 0 ? (
+        ) : filteredProjects.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
-              {projects.map((project) => (
-                <div
+              {filteredProjects.map((project) => (
+                <MyProjectsItemCard
                   key={project.id}
+                  project={project}
                   onClick={() => setSelectedProject(project)}
-                  className="cursor-pointer"
-                >
-                  <MyProjectsItemCard project={project} />
-                </div>
+                  onEdit={handleEditProject}
+                  onDelete={handleDeleteDraft}
+                  onSubmitDraft={handleSubmitDraft}
+                />
               ))}
             </div>
 
-            {/* 🟢 NEW: Pagination controls — only shown when there's more than one page */}
             {pagination.totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 pt-4">
                 <button
@@ -131,13 +225,13 @@ export default function ProjectList() {
                     onClick={() => goToPage(page)}
                     style={
                       page === currentPage
-                        ? { backgroundColor: '#00a664', color: '#ffffff' }
+                        ? { backgroundColor: "#00a664", color: "#ffffff" }
                         : undefined
                     }
                     className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
                       page === currentPage
-                        ? ''
-                        : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? ""
+                        : "border border-gray-200 text-gray-600 hover:bg-gray-50"
                     }`}
                   >
                     {page}
@@ -162,16 +256,20 @@ export default function ProjectList() {
             </div>
             <div className="space-y-1">
               <h3 className="text-base font-bold text-gray-900">
-                Your project shelf is empty
+                {statusFilter === "all"
+                  ? "Your project shelf is empty"
+                  : "No projects in this status"}
               </h3>
               <p className="text-sm text-gray-500">
-                Publish an idea and invite collaborators to help it grow.
+                {statusFilter === "all"
+                  ? "Publish an idea and invite collaborators to help it grow."
+                  : "Try selecting another status filter or create a new project."}
               </p>
             </div>
             <button
               type="button"
-              onClick={() => setIsModalOpen(true)}
-              style={{ backgroundColor: '#00a664', color: '#ffffff' }}
+              onClick={handleOpenCreate}
+              style={{ backgroundColor: "#00a664", color: "#ffffff" }}
               className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer mt-2"
             >
               Publish your first project
@@ -180,11 +278,16 @@ export default function ProjectList() {
         )}
       </div>
 
-      {/* Publish Project Modal */}
+      {/* Publish / Edit / Resubmit Modal */}
       <MyProjectsPublishModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingProject(null);
+        }}
+        editingProject={editingProject}
+        onUpdateProject={handleUpdateModalProject}
       />
     </div>
   );
-} 
+}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 
+
 const API_BASE = (import.meta.env.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api').replace(/\/+$/, '');
 
 export default function PublicProjectDetail() {

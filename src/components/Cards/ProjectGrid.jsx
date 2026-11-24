@@ -83,12 +83,17 @@ const ProjectGrid = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, currentUser?.id, filterKey]);
 
-  const handleSelect = (project) => {
-    if (onSelectProject) onSelectProject(project);
-    if (onOpen) onOpen(project);
+  const handleSelect = (e, project) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+    if (onSelectProject || onOpen) {
+      e.preventDefault();
+      if (onSelectProject) onSelectProject(project);
+      if (onOpen) onOpen(project);
+    }
   };
 
   const handleBookmarkClick = (e, project) => {
+    e.preventDefault();
     e.stopPropagation();
     if (onToggleSave) onToggleSave(project);
   };
@@ -143,10 +148,10 @@ const ProjectGrid = ({
         const isFeatured = Number(project.is_featured) === 1;
 
         return (
-          <button
+          <a
             key={project.id}
-            type="button"
-            onClick={() => handleSelect(project)}
+            href={`/projects/${project.id}`}
+            onClick={(e) => handleSelect(e, project)}
             className={`text-left rounded-2xl border bg-white p-6 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col group min-w-0 w-full ${
               isFeatured ? 'border-amber-300 ring-1 ring-amber-100' : 'border-slate-200/60'
             }`}
@@ -204,7 +209,7 @@ const ProjectGrid = ({
                   : ''}
               </span>
             </div>
-          </button>
+          </a>
         );
       })}
     </div>

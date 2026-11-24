@@ -81,7 +81,6 @@ export function useGetSavedProjects({ page = 1, limit = 6 } = {}, options = {}) 
   return useQuery({
     queryKey: ["projects", "saved", page, limit],
     queryFn: async () => {
-      // 🟢 FIX: axios baseURL already includes /api, so no /api prefix here
       const endpoint = API_ENDPOINTS?.projects?.saved || '/projects/saved';
       const response = await api.get(endpoint, { params: { page, limit } });
 
@@ -118,12 +117,70 @@ export function usePublishProject(options = {}) {
       return api.post(endpoint, payload);
     },
     onSuccess: (res, variables) => {
-      toast.success(res?.data?.message || "Project published!");
+      const isDraft = String(variables?.status || '').toLowerCase() === 'draft';
+      toast.success(res?.data?.message || (isDraft ? "Draft saved!" : "Project submitted!"));
       dispatch(projectPublished({ ...variables, id: res?.data?.projectId }));
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
     onError: (err) => {
-      toast.error(err?.response?.data?.message || "Failed to publish project");
+      toast.error(err?.response?.data?.message || "Failed to save project");
+    },
+    ...options,
+  });
+}
+
+export function useUpdateProject(options = {}) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => {
+      const base = API_ENDPOINTS?.projects?.update || '/projects';
+      return api.put(`${base}/${id}`, payload);
+    },
+    onSuccess: (res) => {
+      toast.success(res?.data?.message || "Project updated!");
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to update project");
+    },
+    ...options,
+  });
+}
+
+export function useDeleteProject(options = {}) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (projectId) => {
+      const base = API_ENDPOINTS?.projects?.delete || '/projects';
+      return api.delete(`${base}/${projectId}`);
+    },
+    onSuccess: (res) => {
+      toast.success(res?.data?.message || "Draft deleted!");
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to delete project");
+    },
+    ...options,
+  });
+}
+
+export function useSubmitProjectDraft(options = {}) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (project) => {
+      const base = API_ENDPOINTS?.projects?.submit || '/projects';
+      return api.post(`${base}/${project.id}/submit`, { status: 'pending_review' });
+    },
+    onSuccess: (res) => {
+      toast.success(res?.data?.message || "Project submitted for review!");
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to submit project");
     },
     ...options,
   });
@@ -134,7 +191,6 @@ export function useToggleSaveProject(options = {}) {
 
   return useMutation({
     mutationFn: ({ project_id, isSaved }) => {
-      // 🟢 FIX: axios baseURL already includes /api, so no /api prefix here
       const endpoint = isSaved
         ? (API_ENDPOINTS?.projects?.unsave || '/projects/unsave')
         : (API_ENDPOINTS?.projects?.save || '/projects/save');

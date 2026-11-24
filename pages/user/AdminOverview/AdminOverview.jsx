@@ -21,6 +21,11 @@ import {
   UserCheck,
   UserX,
   Menu,
+  Inbox,
+  Clock,
+  ChevronRight,
+  Globe,
+  Info,
 } from 'lucide-react';
 import axios from 'axios';
 import { logout } from '@/redux/slices/userSlices';
@@ -67,13 +72,45 @@ const formatDateTime = (value) => {
   });
 };
 
+// UI helper: initials for avatar circles
+const getInitials = (name) => {
+  const parts = String(name || '?')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+// UI helper: colour-coded status badge classes
+const getStatusStyle = (status) => {
+  const s = String(status || '').toLowerCase();
+  if (s === 'approved' || s === 'published') {
+    return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
+  }
+  if (s === 'pending_review' || s === 'pending') {
+    return 'bg-amber-50 text-amber-700 border border-amber-100';
+  }
+  if (s === 'changes_requested') {
+    return 'bg-orange-50 text-orange-700 border border-orange-100';
+  }
+  if (s === 'rejected') {
+    return 'bg-red-50 text-red-600 border border-red-100';
+  }
+  if (s === 'draft') {
+    return 'bg-slate-100 text-slate-600 border border-slate-200';
+  }
+  return 'bg-slate-100 text-slate-700 border border-slate-200';
+};
+
 function AdminOverview() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const currentUser = useSelector((state) => state.user?.user || state.auth?.user || null);
 
 const location = useLocation();
-const activeNav = location.pathname.endsWith('/review') ? 'queue' : 'overview';
+const activeNav = location.pathname.endsWith('/review') ? 'queue' : location.pathname.endsWith('/projects') ? 'projects' : location.pathname.endsWith('/users') ? 'users' : 'overview';
 const setActiveNav = (id) => {
   const map = {
     overview: '/admin',
@@ -228,6 +265,20 @@ const setActiveNav = (id) => {
     fetchOverviewStats();
     fetchAllProjects();
     fetchUsersList();
+  }, []);
+
+  // UI: close any open modal with the Escape key
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      setSelectedReq(null);
+      setNoteError('');
+      setUnpublishTarget(null);
+      setUserConfirmTarget(null);
+      setMobileNavOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
   const activeFeaturedCount = useMemo(
@@ -502,20 +553,28 @@ const setActiveNav = (id) => {
     {
       value: overviewLoading ? '—' : Number(overview.totalUsers || 0).toLocaleString(),
       label: 'Registered users',
+      icon: Users,
+      accent: 'bg-sky-50 text-sky-600',
     },
     {
       value: overviewLoading
         ? '—'
         : Number(overview.totalApprovedProjects || 0).toLocaleString(),
       label: 'Active projects',
+      icon: FolderKanban,
+      accent: 'bg-emerald-50 text-emerald-600',
     },
     {
       value: requests.length + projectRequests.length,
       label: 'Pending requests',
+      icon: Clock,
+      accent: 'bg-amber-50 text-amber-600',
     },
     {
       value: `${activeFeaturedCount}/${MAX_FEATURED_PROJECTS}`,
       label: 'Featured slots used',
+      icon: Star,
+      accent: 'bg-violet-50 text-violet-600',
     },
   ];
 
@@ -534,10 +593,32 @@ const setActiveNav = (id) => {
     { id: 'users', label: 'Users', icon: Users, badge: usersList.length },
   ];
 
+  const adminDisplayName =
+    currentUser?.name || currentUser?.full_name || currentUser?.email || 'Admin';
+
+  // UI: status filter chips with live counts (the <select> filter is kept as well)
+  const statusChips = [
+    { value: 'all', label: 'All' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'pending_review', label: 'Pending' },
+    { value: 'changes_requested', label: 'Changes' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'rejected', label: 'Rejected' },
+  ];
+  const statusCount = (val) =>
+    val === 'all'
+      ? allProjects.length
+      : allProjects.filter((p) => (p.status || '').toLowerCase() === val).length;
+
   const renderQueueCard = () => (
-    <section className="min-w-0 space-y-4 sm:space-y-5 rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-4 sm:p-7 shadow-sm">
+    <section className="min-w-0 space-y-4 sm:space-y-5 rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-4 sm:p-7 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex justify-between items-center">
-        <h3 className="text-base sm:text-lg font-bold text-slate-900">Pending Requests Queue</h3>
+        <div className="flex items-center gap-2.5">
+          <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-50 text-emerald-600">
+            <ClipboardList className="h-4 w-4" />
+          </div>
+          <h3 className="text-base sm:text-lg font-bold text-slate-900">Pending Requests Queue</h3>
+        </div>
         <button
           type="button"
           onClick={() => {
@@ -591,13 +672,26 @@ const setActiveNav = (id) => {
 
       <div className="space-y-3">
         {activeLoading ? (
-          <p className="text-xs text-slate-400 py-4 text-center">Loading requests...</p>
+          <div className="space-y-3">
+            <p className="text-xs text-slate-400 py-1 text-center">Loading requests...</p>
+            {[0, 1].map((i) => (
+              <div
+                key={i}
+                className="h-14 rounded-xl bg-slate-100/80 animate-pulse border border-slate-100"
+              />
+            ))}
+          </div>
         ) : activeList.length === 0 ? (
-          <p className="text-xs text-slate-400 py-4 text-center">
-            {activeQueue === 'collaborations'
-              ? 'No pending collaboration requests.'
-              : 'No pending project submissions.'}
-          </p>
+          <div className="flex flex-col items-center gap-2 py-6">
+            <div className="grid h-10 w-10 place-items-center rounded-full bg-slate-50 text-slate-300">
+              <Inbox className="h-5 w-5" />
+            </div>
+            <p className="text-xs text-slate-400 text-center">
+              {activeQueue === 'collaborations'
+                ? 'No pending collaboration requests.'
+                : 'No pending project submissions.'}
+            </p>
+          </div>
         ) : activeQueue === 'collaborations' ? (
           requests.map((item) => (
             <div
@@ -608,8 +702,11 @@ const setActiveNav = (id) => {
                 setAdminNote('');
                 setNoteError('');
               }}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:gap-3 sm:p-4 border border-slate-100 cursor-pointer hover:bg-slate-100/80 transition-all"
+              className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:gap-3 sm:p-4 border border-slate-100 cursor-pointer hover:bg-white hover:border-emerald-200 hover:shadow-sm transition-all"
             >
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-emerald-100 text-[11px] font-bold text-emerald-700">
+                {getInitials(item.sender_name || item.senderName || `U${item.sender_id}`)}
+              </div>
               <div className="min-w-0 break-words text-xs sm:text-sm text-slate-700 space-y-0.5">
                 <p className="font-semibold text-slate-900">
                   {item.sender_name || item.senderName || `User #${item.sender_id}`}
@@ -623,7 +720,7 @@ const setActiveNav = (id) => {
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 group-hover:bg-emerald-100 transition-colors">
                   <Eye className="w-3.5 h-3.5" /> View Request
                 </span>
               </div>
@@ -639,8 +736,11 @@ const setActiveNav = (id) => {
                 setAdminNote('');
                 setNoteError('');
               }}
-              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:gap-3 sm:p-4 border border-slate-100 cursor-pointer hover:bg-slate-100/80 transition-all"
+              className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-xl sm:rounded-2xl bg-[#f8fafc] p-3 sm:gap-3 sm:p-4 border border-slate-100 cursor-pointer hover:bg-white hover:border-amber-200 hover:shadow-sm transition-all"
             >
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-amber-100 text-amber-700">
+                <FolderKanban className="h-4 w-4" />
+              </div>
               <div className="min-w-0 break-words text-xs sm:text-sm text-slate-700 space-y-0.5">
                 <p className="font-semibold text-slate-900">{item.title}</p>
                 <p className="text-slate-500 text-[11px]">
@@ -654,7 +754,7 @@ const setActiveNav = (id) => {
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                <span className="flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100">
+                <span className="flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-100 group-hover:bg-amber-100 transition-colors">
                   <Eye className="w-3.5 h-3.5" /> Review
                 </span>
               </div>
@@ -664,7 +764,6 @@ const setActiveNav = (id) => {
       </div>
     </section>
   );
-
  const renderActivityCard = () => <ActivityPanel />;
 
   const renderProjectsTab = () => (
@@ -675,6 +774,17 @@ const setActiveNav = (id) => {
           <p className="text-xs text-slate-500">
             Featured active: {activeFeaturedCount} / {MAX_FEATURED_PROJECTS}
           </p>
+          {/* Featured slots progress bar */}
+          <div className="mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-slate-100">
+            <div
+              className={`h-full rounded-full transition-all ${
+                activeFeaturedCount >= MAX_FEATURED_PROJECTS ? 'bg-amber-500' : 'bg-emerald-500'
+              }`}
+              style={{
+                width: `${Math.min(100, (activeFeaturedCount / MAX_FEATURED_PROJECTS) * 100)}%`,
+              }}
+            />
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2.5">
@@ -685,14 +795,14 @@ const setActiveNav = (id) => {
               value={projectSearch}
               onChange={(e) => setProjectSearch(e.target.value)}
               placeholder="Search title, owner, industry..."
-              className="w-full sm:w-56 rounded-xl border border-slate-200 pl-9 pr-3 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none"
+              className="w-full sm:w-56 rounded-xl border border-slate-200 pl-9 pr-3 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
             />
           </div>
 
           <select
             value={projectStatusFilter}
             onChange={(e) => setProjectStatusFilter(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 focus:border-emerald-600 focus:outline-none"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all cursor-pointer"
           >
             <option value="all">All statuses</option>
            <option value="approved">Approved</option>
@@ -704,8 +814,36 @@ const setActiveNav = (id) => {
         </div>
       </div>
 
+      {/* Status quick filter chips */}
+      <div className="flex flex-wrap gap-1.5">
+        {statusChips.map((chip) => {
+          const isOn = projectStatusFilter === chip.value;
+          return (
+            <button
+              key={chip.value}
+              type="button"
+              onClick={() => setProjectStatusFilter(chip.value)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold transition-all cursor-pointer ${
+                isOn
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {chip.label}
+              <span
+                className={`rounded-full px-1.5 text-[10px] ${
+                  isOn ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                {statusCount(chip.value)}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {featuredBannerMsg && (
-        <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
+        <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800 nx-fade-in">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
             <span>{featuredBannerMsg}</span>
@@ -721,22 +859,32 @@ const setActiveNav = (id) => {
       )}
 
       {allProjectsLoading ? (
-        <p className="text-xs text-slate-400 py-8 text-center">Loading projects...</p>
+        <div className="space-y-2.5 py-2">
+          <p className="text-xs text-slate-400 text-center pb-1">Loading projects...</p>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-12 rounded-xl bg-slate-100/80 animate-pulse" />
+          ))}
+        </div>
       ) : filteredProjects.length === 0 ? (
-        <p className="text-xs text-slate-400 py-8 text-center">No projects match your filter.</p>
+        <div className="flex flex-col items-center gap-2 py-10">
+          <div className="grid h-11 w-11 place-items-center rounded-full bg-slate-50 text-slate-300">
+            <FolderKanban className="h-5 w-5" />
+          </div>
+          <p className="text-xs text-slate-400 text-center">No projects match your filter.</p>
+        </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-slate-100">
           <table className="w-full text-left border-collapse min-w-[780px]">
             <thead>
-              <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                <th className="py-3 pr-3">Title</th>
+              <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <th className="py-3 pl-3 pr-3">Title</th>
                 <th className="py-3 px-3">Owner</th>
                 <th className="py-3 px-3">Industry</th>
                 <th className="py-3 px-3">Stage</th>
                 <th className="py-3 px-3">Status</th>
                 <th className="py-3 px-3">Featured &amp; Until</th>
                 <th className="py-3 px-3">Created</th>
-                <th className="py-3 pl-3 text-right">Actions</th>
+                <th className="py-3 pl-3 pr-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
@@ -747,8 +895,8 @@ const setActiveNav = (id) => {
                 const statusLower = (proj.status || '').toLowerCase();
 
                 return (
-                  <tr key={proj.id} className="hover:bg-slate-50/70 align-middle">
-                    <td className="py-3 pr-3 font-semibold text-slate-900 max-w-[190px] truncate">
+                  <tr key={proj.id} className="hover:bg-emerald-50/30 align-middle transition-colors">
+                    <td className="py-3 pl-3 pr-3 font-semibold text-slate-900 max-w-[190px] truncate">
                       {proj.title}
                     </td>
                     <td className="py-3 px-3 whitespace-nowrap">
@@ -759,7 +907,11 @@ const setActiveNav = (id) => {
                     </td>
                     <td className="py-3 px-3 whitespace-nowrap">{proj.stage || '—'}</td>
                     <td className="py-3 px-3 whitespace-nowrap">
-                      <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getStatusStyle(
+                          proj.status
+                        )}`}
+                      >
                         {proj.status || 'Unknown'}
                       </span>
                     </td>
@@ -803,7 +955,7 @@ const setActiveNav = (id) => {
                     <td className="py-3 px-3 whitespace-nowrap text-slate-500">
                       {formatDisplayDate(proj.created_at || proj.createdAt)}
                     </td>
-                    <td className="py-3 pl-3 text-right whitespace-nowrap">
+                    <td className="py-3 pl-3 pr-3 text-right whitespace-nowrap">
                       <div className="inline-flex items-center gap-1.5">
                         <button
                           type="button"
@@ -840,6 +992,12 @@ const setActiveNav = (id) => {
           </table>
         </div>
       )}
+
+      {!allProjectsLoading && filteredProjects.length > 0 && (
+        <p className="text-[11px] text-slate-400">
+          Showing {filteredProjects.length} of {allProjects.length} projects
+        </p>
+      )}
     </section>
   );
 
@@ -860,27 +1018,37 @@ const setActiveNav = (id) => {
             value={userSearch}
             onChange={(e) => setUserSearch(e.target.value)}
             placeholder="Search name, email, role..."
-            className="w-full sm:w-60 rounded-xl border border-slate-200 pl-9 pr-3 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none"
+            className="w-full sm:w-60 rounded-xl border border-slate-200 pl-9 pr-3 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
           />
         </div>
       </div>
 
       {usersLoading ? (
-        <p className="text-xs text-slate-400 py-8 text-center">Loading users...</p>
+        <div className="space-y-2.5 py-2">
+          <p className="text-xs text-slate-400 text-center pb-1">Loading users...</p>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-12 rounded-xl bg-slate-100/80 animate-pulse" />
+          ))}
+        </div>
       ) : filteredUsers.length === 0 ? (
-        <p className="text-xs text-slate-400 py-8 text-center">No users found.</p>
+        <div className="flex flex-col items-center gap-2 py-10">
+          <div className="grid h-11 w-11 place-items-center rounded-full bg-slate-50 text-slate-300">
+            <Users className="h-5 w-5" />
+          </div>
+          <p className="text-xs text-slate-400 text-center">No users found.</p>
+        </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-slate-100">
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
-              <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                <th className="py-3 pr-3">Name</th>
+              <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <th className="py-3 pl-3 pr-3">Name</th>
                 <th className="py-3 px-3">Email</th>
                 <th className="py-3 px-3">Role</th>
                 <th className="py-3 px-3">Joined</th>
                 <th className="py-3 px-3">Projects</th>
                 <th className="py-3 px-3">Status</th>
-                <th className="py-3 pl-3 text-right">Action</th>
+                <th className="py-3 pl-3 pr-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
@@ -889,12 +1057,27 @@ const setActiveNav = (id) => {
                 const protectedAdmin = isTargetProtectedAdmin(u);
 
                 return (
-                  <tr key={u.id} className="hover:bg-slate-50/70">
-                    <td className="py-3 pr-3 font-semibold text-slate-900 whitespace-nowrap">
-                      {u.name || u.full_name || `User #${u.id}`}
+                  <tr key={u.id} className="hover:bg-emerald-50/30 transition-colors">
+                    <td className="py-3 pl-3 pr-3 font-semibold text-slate-900 whitespace-nowrap">
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-[10px] font-bold ${
+                            suspended
+                              ? 'bg-red-50 text-red-500'
+                              : 'bg-emerald-100 text-emerald-700'
+                          }`}
+                        >
+                          {getInitials(u.name || u.full_name || `U${u.id}`)}
+                        </div>
+                        <span>{u.name || u.full_name || `User #${u.id}`}</span>
+                      </div>
                     </td>
                     <td className="py-3 px-3 whitespace-nowrap">{u.email || '—'}</td>
-                    <td className="py-3 px-3 whitespace-nowrap">{u.role || 'user'}</td>
+                    <td className="py-3 px-3 whitespace-nowrap">
+                      <span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 capitalize">
+                        {u.role || 'user'}
+                      </span>
+                    </td>
                     <td className="py-3 px-3 whitespace-nowrap text-slate-500">
                       {formatDisplayDate(u.created_at || u.joined_at || u.createdAt)}
                     </td>
@@ -903,16 +1086,21 @@ const setActiveNav = (id) => {
                     </td>
                     <td className="py-3 px-3 whitespace-nowrap">
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
                           suspended
                             ? 'bg-red-50 text-red-600 border border-red-100'
                             : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                         }`}
                       >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            suspended ? 'bg-red-500' : 'bg-emerald-500'
+                          }`}
+                        />
                         {suspended ? 'Suspended' : 'Active'}
                       </span>
                     </td>
-                    <td className="py-3 pl-3 text-right whitespace-nowrap">
+                    <td className="py-3 pl-3 pr-3 text-right whitespace-nowrap">
                       {protectedAdmin ? (
                         <span className="text-[11px] text-slate-400 italic">Protected</span>
                       ) : (
@@ -947,6 +1135,12 @@ const setActiveNav = (id) => {
           </table>
         </div>
       )}
+
+      {!usersLoading && filteredUsers.length > 0 && (
+        <p className="text-[11px] text-slate-400">
+          Showing {filteredUsers.length} of {usersList.length} users
+        </p>
+      )}
     </section>
   );
 
@@ -957,7 +1151,15 @@ const setActiveNav = (id) => {
     : [];
 
   return (
-    <div className="w-full min-h-screen bg-[#fbfcfd] font-sans overflow-x-hidden flex flex-col lg:flex-row">
+    <div className="w-full min-h-screen bg-gradient-to-b from-[#f6faf8] to-[#fbfcfd] font-sans overflow-x-hidden flex flex-col lg:flex-row">
+      {/* UI animations */}
+      <style>{`
+        @keyframes nxFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes nxPop { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+        .nx-fade-in { animation: nxFadeIn 0.35s ease-out both; }
+        .nx-pop { animation: nxPop 0.2s ease-out both; }
+      `}</style>
+
       {/* Left Navigation (Desktop) */}
     <aside className="hidden">
         <div className="space-y-6">
@@ -1030,10 +1232,10 @@ const setActiveNav = (id) => {
                 aria-label="Toggle admin menu"
                 className="lg:hidden grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 cursor-pointer"
               >
-                <Menu className="h-4 w-4" />
+                {mobileNavOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
               </button>
 
-              <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white shadow-sm">
+              <div className="grid h-9 w-9 sm:h-10 sm:w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-sm">
                 <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 fill-current" />
               </div>
               <div className="min-w-0">
@@ -1046,21 +1248,36 @@ const setActiveNav = (id) => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-medium text-red-500 shadow-sm transition-all hover:bg-red-50 cursor-pointer"
-            >
-              <LogOut className="h-4 w-4" />
-              Log out
-            </button>
+            <div className="flex shrink-0 items-center gap-2.5">
+              {/* Signed-in admin chip */}
+              <div className="hidden sm:flex items-center gap-2 rounded-xl border border-slate-100 bg-white px-2.5 py-1.5 shadow-sm">
+                <div className="grid h-7 w-7 place-items-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
+                  {getInitials(adminDisplayName)}
+                </div>
+                <div className="min-w-0 max-w-[140px]">
+                  <p className="truncate text-xs font-semibold text-slate-800 leading-tight">
+                    {adminDisplayName}
+                  </p>
+                  <p className="text-[10px] text-slate-400 leading-tight">Super admin</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="shrink-0 flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-medium text-red-500 shadow-sm transition-all hover:bg-red-50 cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+                Log out
+              </button>
+            </div>
           </header>
 
           {/* Mobile Navigation Bar */}
           {mobileNavOpen && (
             <nav
               aria-label="Mobile admin navigation"
-              className="lg:hidden grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm"
+              className="lg:hidden grid grid-cols-2 sm:grid-cols-4 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm nx-fade-in"
             >
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -1098,24 +1315,67 @@ const setActiveNav = (id) => {
               {activeNav === 'projects' && 'Projects'}
               {activeNav === 'users' && 'Users'}
             </h1>
+            <p className="text-xs sm:text-sm text-slate-400">
+              {activeNav === 'overview' &&
+                `Welcome back, ${adminDisplayName}. Here's what's happening on the platform.`}
+              {activeNav === 'queue' && 'Review collaboration requests and project submissions.'}
+              {activeNav === 'projects' && 'Manage, feature and unpublish projects.'}
+              {activeNav === 'users' && 'Manage platform accounts and access.'}
+            </p>
           </div>
 
           {activeNav === 'overview' && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
-                {stats.map((stat, idx) => (
-                  <div
-                    key={idx}
-                    className="min-w-0 space-y-1 sm:space-y-2 rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-4 sm:p-6 shadow-sm"
-                  >
-                    <div className="truncate text-xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900">
-                      {stat.value}
+                {stats.map((stat, idx) => {
+                  const StatIcon = stat.icon;
+                  return (
+                    <div
+                      key={idx}
+                      className="nx-fade-in min-w-0 space-y-1 sm:space-y-2 rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-4 sm:p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+                      style={{ animationDelay: `${idx * 60}ms` }}
+                    >
+                      {StatIcon && (
+                        <div
+                          className={`mb-1 grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-xl ${stat.accent}`}
+                        >
+                          <StatIcon className="h-4 w-4" />
+                        </div>
+                      )}
+                      <div className="truncate text-xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900">
+                        {stat.value}
+                      </div>
+                      <div className="text-[11px] sm:text-sm leading-snug text-slate-400">
+                        {stat.label}
+                      </div>
                     </div>
-                    <div className="text-[11px] sm:text-sm leading-snug text-slate-400">
-                      {stat.label}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
+              </div>
+
+              {/* Quick actions */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { id: 'queue', label: 'Open review queue', icon: ClipboardList },
+                  { id: 'projects', label: 'Manage projects', icon: FolderKanban },
+                  { id: 'users', label: 'Manage users', icon: Users },
+                ].map((qa) => {
+                  const QaIcon = qa.icon;
+                  return (
+                    <button
+                      key={qa.id}
+                      type="button"
+                      onClick={() => setActiveNav(qa.id)}
+                      className="group flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-4 py-3 text-xs font-semibold text-slate-700 shadow-sm hover:border-emerald-200 hover:text-emerald-700 hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <span className="flex items-center gap-2.5">
+                        <QaIcon className="h-4 w-4 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                        {qa.label}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -1133,8 +1393,16 @@ const setActiveNav = (id) => {
 
       {/* Review Modal (Project with 3 actions + Collaboration) */}
       {selectedReq && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto space-y-5 rounded-3xl bg-white p-6 shadow-2xl border border-slate-100">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm nx-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setSelectedReq(null);
+              setNoteError('');
+            }
+          }}
+        >
+          <div className="nx-pop w-full max-w-xl max-h-[90vh] overflow-y-auto space-y-5 rounded-3xl bg-white p-6 shadow-2xl border border-slate-100">
             <div className="flex items-start justify-between border-b border-slate-100 pb-3.5">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
@@ -1164,6 +1432,15 @@ const setActiveNav = (id) => {
                     </>
                   )}
                 </p>
+                {selectedReqType === 'project' && selectedReq.status && (
+                  <span
+                    className={`mt-2 inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${getStatusStyle(
+                      selectedReq.status
+                    )}`}
+                  >
+                    {selectedReq.status}
+                  </span>
+                )}
               </div>
               <button
                 type="button"
@@ -1255,7 +1532,9 @@ const setActiveNav = (id) => {
                     )}
                     {selectedReq.website_url && (
                       <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-100">
-                        <span className="font-bold text-slate-500 block mb-0.5">Website</span>
+                        <span className="font-bold text-slate-500 mb-0.5 flex items-center gap-1">
+                          <Globe className="h-3 w-3" /> Website
+                        </span>
                         <span className="text-emerald-700 break-all">
                           {selectedReq.website_url}
                         </span>
@@ -1339,11 +1618,16 @@ const setActiveNav = (id) => {
                     setAdminNote(e.target.value);
                     if (noteError) setNoteError('');
                   }}
-                  className="mt-1 w-full rounded-xl border border-slate-200 p-3 text-xs sm:text-sm text-slate-800 focus:border-emerald-600 focus:outline-none transition-all placeholder:text-slate-400"
+                  className="mt-1 w-full rounded-xl border border-slate-200 p-3 text-xs sm:text-sm text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all placeholder:text-slate-400"
                 />
-                {noteError && (
-                  <p className="mt-1 text-xs font-medium text-red-600">{noteError}</p>
-                )}
+                <div className="mt-1 flex items-center justify-between">
+                  {noteError ? (
+                    <p className="text-xs font-medium text-red-600">{noteError}</p>
+                  ) : (
+                    <span />
+                  )}
+                  <span className="text-[10px] text-slate-400">{adminNote.length} chars</span>
+                </div>
               </div>
             </div>
 
@@ -1397,24 +1681,38 @@ const setActiveNav = (id) => {
                 </button>
               </div>
             )}
+
+            <p className="flex items-center gap-1.5 text-[10px] text-slate-400">
+              <Info className="h-3 w-3" /> Press Esc to close
+            </p>
           </div>
         </div>
       )}
 
       {/* Unpublish Reason Modal (S1-07) */}
       {unpublishTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm nx-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setUnpublishTarget(null);
+          }}
+        >
           <form
             onSubmit={handleConfirmUnpublish}
-            className="w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-2xl border border-slate-100"
+            className="nx-pop w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-2xl border border-slate-100"
           >
             <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Unpublish project</h3>
-                <p className="text-xs text-slate-500">
-                  &ldquo;{unpublishTarget.title}&rdquo; will move to Changes requested and notify
-                  the owner.
-                </p>
+              <div className="flex items-start gap-3">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-red-50 text-red-500">
+                  <ArchiveX className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Unpublish project</h3>
+                  <p className="text-xs text-slate-500">
+                    &ldquo;{unpublishTarget.title}&rdquo; will move to Changes requested and notify
+                    the owner.
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -1437,7 +1735,7 @@ const setActiveNav = (id) => {
                   if (unpublishError) setUnpublishError('');
                 }}
                 placeholder="Explain why this project is being unpublished..."
-                className="mt-1 w-full rounded-xl border border-slate-200 p-3 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none"
+                className="mt-1 w-full rounded-xl border border-slate-200 p-3 text-xs text-slate-800 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100 transition-all"
               />
               {unpublishError && (
                 <p className="mt-1 text-xs font-medium text-red-600">{unpublishError}</p>
@@ -1466,13 +1764,33 @@ const setActiveNav = (id) => {
 
       {/* User Suspend / Reactivate Confirmation Modal (S1-07) */}
       {userConfirmTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-base font-bold text-slate-900">
-              {userConfirmTarget.is_suspended || userConfirmTarget.status === 'suspended'
-                ? 'Reactivate user account?'
-                : 'Suspend user account?'}
-            </h3>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm nx-fade-in"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setUserConfirmTarget(null);
+          }}
+        >
+          <div className="nx-pop w-full max-w-md space-y-4 rounded-3xl bg-white p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-center gap-3">
+              <div
+                className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                  userConfirmTarget.is_suspended || userConfirmTarget.status === 'suspended'
+                    ? 'bg-emerald-50 text-emerald-600'
+                    : 'bg-red-50 text-red-500'
+                }`}
+              >
+                {userConfirmTarget.is_suspended || userConfirmTarget.status === 'suspended' ? (
+                  <UserCheck className="h-5 w-5" />
+                ) : (
+                  <UserX className="h-5 w-5" />
+                )}
+              </div>
+              <h3 className="text-base font-bold text-slate-900">
+                {userConfirmTarget.is_suspended || userConfirmTarget.status === 'suspended'
+                  ? 'Reactivate user account?'
+                  : 'Suspend user account?'}
+              </h3>
+            </div>
             <p className="text-xs text-slate-600">
               User:{' '}
               <span className="font-semibold text-slate-900">

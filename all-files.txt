@@ -1,0 +1,1086 @@
+﻿
+===== pages\user\MyProjects\ProjectList.jsx =====
+
+import React, { useState } from "react";
+import { useSelector } from "react-redux";
+
+// ðŸŸ¢ Local components in pages/user/MyProjects/
+import MyProjectsItemCard from "./MyProjectsItemCard";
+import MyProjectsPublishModal from "./MyProjectsPublishModal";
+
+// ðŸŸ¢ Shared component in src/components/shared/
+import ProjectDetailCard from "../../../src/components/shared/ProjectDetailCard";
+
+import { Sparkles, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { useGetMyProjects } from "../../../src/api/client/projects";
+
+export default function ProjectList() {
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // ðŸŸ¢ FIX: page state drives real backend pagination (6 projects per page).
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Fetch logged-in user's projects dynamically from API, paginated.
+  const {
+    data,
+    isLoading,
+    isError,
+  } = useGetMyProjects({ page: currentPage, limit: 6 });
+
+  const projects = data?.rows || [];
+  const pagination = data?.pagination || {
+    totalProjects: 0,
+    totalPages: 1,
+    currentPage: 1,
+    hasNextPage: false,
+    hasPrevPage: false,
+  };
+
+  // Redux user state
+  const currentUser = useSelector((state) => state.user?.user);
+
+  if (selectedProject) {
+    return (
+      <ProjectDetailCard
+        project={selectedProject}
+        currentUserId={currentUser?.id}
+        onBackToProjects={() => setSelectedProject(null)}
+      />
+    );
+  }
+
+  const goToPage = (page) => {
+    if (page < 1 || page > pagination.totalPages) return;
+    setCurrentPage(page);
+  };
+
+  return (
+    <div className="min-h-screen bg-white p-6 md:p-8 space-y-8 font-sans">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 pt-1">
+        <div className="space-y-1">
+          <span className="text-[11px] font-extrabold text-[#0f9f59] tracking-wider uppercase">
+            PROJECT NEXUS
+          </span>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
+            My Projects
+          </h1>
+          <p className="text-sm text-gray-500 font-normal">
+            Your workspace for building meaningful things.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          style={{ backgroundColor: '#00a664', color: '#ffffff' }}
+          className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-sm active:scale-95"
+        >
+          <span className="text-lg leading-none font-normal">+</span>
+          <span>Publish project</span>
+        </button>
+      </div>
+
+      {/* Projects Grid Section */}
+      <div className="space-y-5 pt-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-gray-900">My projects</h2>
+          {pagination.totalProjects > 0 && (
+            <span className="text-xs text-gray-400 font-medium">
+              {pagination.totalProjects} project{pagination.totalProjects === 1 ? '' : 's'} total
+            </span>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-slate-400 gap-2 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading your projects...
+          </div>
+        ) : isError ? (
+          <div className="border border-dashed border-red-200 rounded-2xl p-12 text-center text-sm text-red-400 bg-red-50/50">
+            Could not load your projects. Please try again.
+          </div>
+        ) : projects.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+              {projects.map((project) => (
+                <div
+                  key={project.id}
+                  onClick={() => setSelectedProject(project)}
+                  className="cursor-pointer"
+                >
+                  <MyProjectsItemCard project={project} />
+                </div>
+              ))}
+            </div>
+
+            {/* ðŸŸ¢ NEW: Pagination controls â€” only shown when there's more than one page */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-4">
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={!pagination.hasPrevPage}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+
+                {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    onClick={() => goToPage(page)}
+                    style={
+                      page === currentPage
+                        ? { backgroundColor: '#00a664', color: '#ffffff' }
+                        : undefined
+                    }
+                    className={`w-9 h-9 flex items-center justify-center rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                      page === currentPage
+                        ? ''
+                        : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={!pagination.hasNextPage}
+                  className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="border border-dashed border-gray-200 rounded-2xl bg-white p-12 text-center flex flex-col items-center justify-center space-y-4 min-h-[300px]">
+            <div className="w-10 h-10 rounded-full bg-emerald-50 text-[#0f9f59] flex items-center justify-center">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-gray-900">
+                Your project shelf is empty
+              </h3>
+              <p className="text-sm text-gray-500">
+                Publish an idea and invite collaborators to help it grow.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              style={{ backgroundColor: '#00a664', color: '#ffffff' }}
+              className="text-sm font-semibold px-5 py-2.5 rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer mt-2"
+            >
+              Publish your first project
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Publish Project Modal */}
+      <MyProjectsPublishModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </div>
+  );
+} 
+
+===== pages\user\MyProjects\MyProjectsItemCard.jsx =====
+
+import React from 'react';
+import { Clock, XCircle, CheckCircle2 } from 'lucide-react';
+
+const statusConfig = {
+  pending: {
+    label: 'Pending review',
+    icon: Clock,
+    badgeClass: 'bg-amber-50 text-amber-700 border border-amber-100',
+  },
+  rejected: {
+    label: 'Rejected',
+    icon: XCircle,
+    badgeClass: 'bg-red-50 text-red-600 border border-red-100',
+  },
+  approved: {
+    label: 'Approved',
+    icon: CheckCircle2,
+    badgeClass: 'bg-emerald-50 text-[#0f9f59] border border-emerald-100',
+  },
+};
+
+export const MyProjectsItemCard = ({ project, onClick }) => {
+  const status = project?.status; // 'pending' | 'approved' | 'rejected'
+  const statusInfo = statusConfig[status];
+  const isRejected = status === 'rejected';
+  const isPending = status === 'pending';
+
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-3xl p-6 border shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-5 group cursor-pointer ${
+        isRejected ? 'border-red-100 opacity-80' : isPending ? 'border-amber-100' : 'border-slate-100'
+      }`}
+    >
+      <div>
+        {/* Top Header: Category Pill & Status Badge */}
+        <div className="flex items-center justify-between mb-4 gap-2">
+          <span className="bg-emerald-50 text-[#0f9f59] text-xs font-medium px-3 py-1 rounded-full">
+            {project?.category || project?.industry || 'General'}
+          </span>
+
+          {statusInfo && (
+            <span className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 ${statusInfo.badgeClass}`}>
+              <statusInfo.icon className="w-3 h-3" />
+              {statusInfo.label}
+            </span>
+          )}
+        </div>
+
+        {/* Project Title */}
+        <h3 className={`text-lg font-bold transition-colors mb-2 ${
+          isRejected ? 'text-slate-500' : 'text-slate-900 group-hover:text-[#0f9f59]'
+        }`}>
+          {project?.title}
+        </h3>
+
+        {/* Description */}
+        <p className="text-xs text-slate-500 leading-relaxed mb-4 line-clamp-3">
+          {project?.description}
+        </p>
+
+        {/* Admin note â€” only shown when rejected */}
+        {isRejected && project?.admin_response && (
+          <div className="bg-red-50/60 border border-red-100 rounded-xl px-3 py-2 mb-3">
+            <p className="text-[11px] font-semibold text-red-600 mb-0.5">Admin note</p>
+            <p className="text-[11px] text-red-500 leading-relaxed">{project.admin_response}</p>
+          </div>
+        )}
+
+        {/* Tag Chips */}
+        {project?.tags && project.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {project.tags.map((tag, idx) => (
+              <span key={idx} className="bg-slate-100/80 text-slate-600 text-[11px] px-2.5 py-1 rounded-lg font-medium">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Footer */}
+      <div className="flex items-center justify-between pt-2 text-xs font-medium border-t border-slate-50">
+        <span className="text-slate-400">
+          {project?.stage || 'N/A'} Â· {project?.country || 'N/A'}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+export default MyProjectsItemCard;
+
+===== pages\user\MyProjects\MyProjectsPublishModal.jsx =====
+
+import React, { useState } from "react";
+import { createPortal } from "react-dom";
+import { useSelector } from "react-redux";
+import { 
+  X, 
+  Sparkles, 
+  FileText, 
+  Layers, 
+  Globe2, 
+  Target, 
+  Loader2, 
+  ChevronDown, 
+  Check 
+} from "lucide-react";
+import { usePublishProject } from "@/api/client/projects";
+
+// ==========================================
+// 1. FILTER DROPDOWN COMPONENT
+// ==========================================
+const FilterDropdown = ({ label, icon: Icon, options = [], selectedValue, onSelect }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative w-full">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full px-4 py-3 bg-white border rounded-xl text-xs flex items-center justify-between cursor-pointer transition-all ${
+          isOpen ? 'border-[#0f9f59] ring-2 ring-emerald-100' : 'border-slate-200 hover:border-slate-300'
+        }`}
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          {Icon && <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+          <span className={`truncate ${selectedValue ? 'text-slate-800 font-medium' : 'text-slate-400'}`}>
+            {selectedValue || label}
+          </span>
+        </span>
+        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${isOpen ? 'rotate-180 text-[#0f9f59]' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 mt-1.5 w-full bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 max-h-52 overflow-y-auto">
+          {options.length > 0 ? (
+            options.map((option, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => { onSelect(option); setIsOpen(false); }}
+                className={`w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-slate-50 flex items-center justify-between ${
+                  selectedValue === option ? 'text-[#0f9f59] font-semibold bg-emerald-50/60' : 'text-slate-700'
+                }`}
+              >
+                {option}
+                {selectedValue === option && <Check className="w-3.5 h-3.5" />}
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-2 text-xs text-slate-400">No options</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FieldLabel = ({ children, required }) => (
+  <label className="block text-xs font-bold text-slate-700 mb-2">
+    {children}
+    {required && <span className="text-[#0f9f59] ml-0.5">*</span>}
+  </label>
+);
+
+const industryOptions = ['Climate & Energy', 'Health & Wellness', 'Education', 'Fintech', 'Agriculture', 'Creative Technology'];
+const stageOptions = ['Idea', 'Prototype', 'MVP', 'Early Revenue', 'Growth'];
+
+const PublishProjectModal = ({ isOpen, onClose, onProjectPublished }) => {
+  // ðŸŸ¢ FIX: Redux me user "user" slice ke andar store hota hai (userSlices.js:
+  // userSlice.name = 'user', loginSuccess -> state.user = user), "auth" slice
+  // nahi. Pehle "state.auth" padha ja raha tha jo hamesha undefined tha, is
+  // liye user_id hamesha fallback "1" par chala jata tha â€” chahe koi bhi
+  // login ho. Isi wajah se har naya publish hone wala project "Default User"
+  // (id 1) ke naam par create ho raha tha.
+  const { user } = useSelector((state) => state.user || {});
+
+  const [formData, setFormData] = useState({
+    title: '', description: '', industry: '', stage: '', country: '', lookingFor: '',
+  });
+
+  const { mutateAsync: publishProject, isPending: loading } = usePublishProject();
+
+  if (!isOpen) return null;
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDropdownSelect = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.title || !formData.description) return;
+
+    // ðŸŸ¢ FIX: "|| 1" fallback hata diya. Agar kabhi user na mile (e.g. token
+    // expire ho gaya ya user logged out state me hai), to project ko galat
+    // user (id 1) ke naam par silently create karne ke bajaye request hi
+    // rok do â€” taake ye bug dobara na ho.
+    if (!user?.id) {
+      console.error("No logged-in user found â€” cannot publish project.");
+      return;
+    }
+
+    const payload = {
+      user_id: user.id,
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      category: formData.industry || 'General',
+      industry: formData.industry || 'General',
+      stage: formData.stage || 'Idea',
+      location: formData.country || 'Pakistan',
+      looking_for: formData.lookingFor || 'Feedback',
+      match_score: 90,
+      tags: [formData.industry, formData.stage].filter(Boolean),
+    };
+
+    try {
+      await publishProject(payload);
+      setFormData({ title: '', description: '', industry: '', stage: '', country: '', lookingFor: '' });
+      if (onProjectPublished) onProjectPublished();
+      onClose();
+    } catch (error) {
+      console.error("Error publishing project:", error);
+    }
+  };
+
+  const charLimit = 240;
+
+  return createPortal(
+    <div
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(6px)', zIndex: 999999 }}
+      className="flex items-center justify-center p-4"
+    >
+      <div className="absolute inset-0" onClick={onClose} />
+
+      <div onClick={(e) => e.stopPropagation()} className="relative bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden max-h-[95vh] flex flex-col z-10">
+        <div className="px-8 pt-7 pb-5 border-b border-slate-100 bg-gradient-to-br from-emerald-50/70 via-white to-white relative">
+          <button type="button" onClick={onClose} className="absolute top-5 right-6 text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-6 h-6 rounded-lg bg-[#0f9f59] flex items-center justify-center shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="text-[11px] font-bold text-[#0f9f59] uppercase tracking-wider">Publish a project</span>
+          </div>
+          <h3 className="text-2xl font-bold text-slate-900 leading-tight">Give your idea a place to grow.</h3>
+          <p className="text-xs text-slate-400 mt-1.5">Start with the essentials. You can enrich your project as it evolves.</p>
+        </div>
+
+        <div className="px-8 py-7 overflow-y-auto flex-1">
+          <form id="publish-project-form" onSubmit={handleSubmit} className="space-y-7">
+            <div className="space-y-5">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-0.5 bg-[#0f9f59] rounded-full" />
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Basics</span>
+              </div>
+
+              <div>
+                <FieldLabel required>Project title</FieldLabel>
+                <div className="relative">
+                  <FileText className="w-3.5 h-3.5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text" name="title" value={formData.title} onChange={handleChange}
+                    placeholder="e.g. OpenGrid Energy"
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#0f9f59] focus:ring-2 focus:ring-emerald-100 transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <FieldLabel required>Short description</FieldLabel>
+                  <span className="text-[10px] text-slate-300 font-medium">{formData.description.length}/{charLimit}</span>
+                </div>
+                <textarea
+                  rows={3} maxLength={charLimit} name="description" value={formData.description} onChange={handleChange}
+                  placeholder="What are you building and why does it matter?"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#0f9f59] focus:ring-2 focus:ring-emerald-100 resize-none transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-0.5 bg-[#0f9f59] rounded-full" />
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Details</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <FieldLabel>Industry</FieldLabel>
+                  <FilterDropdown label="Select industry" icon={Layers} options={industryOptions} selectedValue={formData.industry} onSelect={(val) => handleDropdownSelect('industry', val)} />
+                </div>
+                <div>
+                  <FieldLabel>Project stage</FieldLabel>
+                  <FilterDropdown label="Select stage" icon={Sparkles} options={stageOptions} selectedValue={formData.stage} onSelect={(val) => handleDropdownSelect('stage', val)} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <FieldLabel>Country</FieldLabel>
+                  <div className="relative">
+                    <Globe2 className="w-3.5 h-3.5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                    <input type="text" name="country" value={formData.country} onChange={handleChange} placeholder="Where is this based?" className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#0f9f59] focus:ring-2 focus:ring-emerald-100 transition-all" />
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel>Looking for</FieldLabel>
+                  <div className="relative">
+                    <Target className="w-3.5 h-3.5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                    <input type="text" name="lookingFor" value={formData.lookingFor} onChange={handleChange} placeholder="Design, funding, research" className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-[#0f9f59] focus:ring-2 focus:ring-emerald-100 transition-all" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div className="px-8 py-4 flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60">
+          <span className="text-[11px] text-slate-400">You can edit these details later.</span>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={onClose} disabled={loading} className="text-xs font-semibold text-slate-600 hover:text-slate-800 px-4 py-2.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50">
+              Cancel
+            </button>
+            <button type="submit" form="publish-project-form" disabled={loading} style={{ backgroundColor: '#0f9f59' }} className="text-xs font-semibold text-white px-5 py-2.5 rounded-xl hover:opacity-90 shadow-sm shadow-emerald-200 cursor-pointer transition-opacity flex items-center gap-2 disabled:opacity-50">
+              {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{loading ? 'Publishing...' : 'Publish project'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+export default PublishProjectModal;
+
+===== src\api\client\projects.js =====
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDispatch } from "react-redux";
+import { toast } from "react-toastify";
+
+import { API_ENDPOINTS } from "../endpoint";
+import api from "../axios";
+import { setMyProjects, setBrowseProjects, projectPublished } from "../../redux/slices/projectSlices";
+
+const normalize = (rows) => {
+  if (!Array.isArray(rows)) return [];
+
+  return rows.map((p) => ({
+    ...p,
+    match: p.match ?? p.match_score ?? 0,
+    country: p.country ?? p.location ?? "",
+    tags: Array.isArray(p.tags)
+      ? p.tags
+      : (() => {
+          try {
+            return JSON.parse(p.tags || "[]");
+          } catch {
+            return [];
+          }
+        })(),
+  }));
+};
+
+export function useGetProjects(options = {}) {
+  const dispatch = useDispatch();
+  return useQuery({
+    queryKey: ["projects", "browse"],
+    queryFn: async () => {
+      const endpoint = API_ENDPOINTS?.projects?.list || '/api/projects';
+      const response = await api.get(endpoint);
+
+      const rawData = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.data || []);
+
+      const rows = normalize(rawData);
+      dispatch(setBrowseProjects(rows));
+      return rows;
+    },
+    ...options,
+  });
+}
+
+export function useGetMyProjects({ page = 1, limit = 6 } = {}, options = {}) {
+  const dispatch = useDispatch();
+  return useQuery({
+    queryKey: ["projects", "mine", page, limit],
+    queryFn: async () => {
+      const endpoint = API_ENDPOINTS?.projects?.mine || '/api/projects/mine';
+      const response = await api.get(endpoint, { params: { page, limit } });
+
+      const rawData = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.data || []);
+
+      const rows = normalize(rawData);
+      dispatch(setMyProjects(rows));
+
+      return {
+        rows,
+        pagination: response.data?.pagination || {
+          totalProjects: rows.length,
+          totalPages: 1,
+          currentPage: 1,
+          limit,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      };
+    },
+    keepPreviousData: true,
+    ...options,
+  });
+}
+
+export function useGetSavedProjects({ page = 1, limit = 6 } = {}, options = {}) {
+  return useQuery({
+    queryKey: ["projects", "saved", page, limit],
+    queryFn: async () => {
+      // ðŸŸ¢ FIX: axios baseURL already includes /api, so no /api prefix here
+      const endpoint = API_ENDPOINTS?.projects?.saved || '/projects/saved';
+      const response = await api.get(endpoint, { params: { page, limit } });
+
+      const rawData = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.data || []);
+
+      const rows = normalize(rawData);
+
+      return {
+        rows,
+        pagination: response.data?.pagination || {
+          totalProjects: rows.length,
+          totalPages: 1,
+          currentPage: 1,
+          limit,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      };
+    },
+    keepPreviousData: true,
+    ...options,
+  });
+}
+
+export function usePublishProject(options = {}) {
+  const queryClient = useQueryClient();
+  const dispatch = useDispatch();
+
+  return useMutation({
+    mutationFn: (payload) => {
+      const endpoint = API_ENDPOINTS?.projects?.create || '/api/projects';
+      return api.post(endpoint, payload);
+    },
+    onSuccess: (res, variables) => {
+      toast.success(res?.data?.message || "Project published!");
+      dispatch(projectPublished({ ...variables, id: res?.data?.projectId }));
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Failed to publish project");
+    },
+    ...options,
+  });
+}
+
+export function useToggleSaveProject(options = {}) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ project_id, isSaved }) => {
+      // ðŸŸ¢ FIX: axios baseURL already includes /api, so no /api prefix here
+      const endpoint = isSaved
+        ? (API_ENDPOINTS?.projects?.unsave || '/projects/unsave')
+        : (API_ENDPOINTS?.projects?.save || '/projects/save');
+      return api.post(endpoint, { project_id });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", "saved"] });
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || "Could not update saved project");
+    },
+    ...options,
+  });
+}
+
+===== src\redux\slices\projectSlices.js =====
+
+import { createSlice } from '@reduxjs/toolkit';
+
+const initialState = {
+  myProjects: [],
+  myProjectsPagination: {
+    currentPage: 1,
+    totalPages: 1,
+    totalProjects: 0,
+    limit: 6,
+    hasNextPage: false,
+    hasPrevPage: false,
+  },
+  browseProjects: [],
+  browseProjectsPagination: {
+    currentPage: 1,
+    totalPages: 1,
+    totalProjects: 0,
+    limit: 6,
+    hasNextPage: false,
+    hasPrevPage: false,
+  },
+  isLoading: false,
+  error: null,
+};
+
+const projectSlice = createSlice({
+  name: 'project',
+  initialState,
+  reducers: {
+    // Set My Projects & Pagination
+    setMyProjects: (state, action) => {
+      state.myProjects = action.payload;
+    },
+    setMyProjectsPagination: (state, action) => {
+      state.myProjectsPagination = action.payload;
+    },
+
+    // Set Browse Projects & Pagination
+    setBrowseProjects: (state, action) => {
+      state.browseProjects = action.payload;
+    },
+    setBrowseProjectsPagination: (state, action) => {
+      state.browseProjectsPagination = action.payload;
+    },
+
+    // Add Newly Published Project directly to state
+    projectPublished: (state, action) => {
+      state.myProjects.unshift(action.payload);
+      state.myProjectsPagination.totalProjects += 1;
+    },
+
+    // Loading & Error Handlers
+    setLoading: (state, action) => {
+      state.isLoading = action.payload;
+    },
+    setError: (state, action) => {
+      state.error = action.payload;
+    },
+
+    // Reset All State (e.g. on Logout)
+    resetProjectState: () => initialState,
+  },
+});
+
+export const {
+  setMyProjects,
+  setMyProjectsPagination,
+  setBrowseProjects,
+  setBrowseProjectsPagination,
+  projectPublished,
+  setLoading,
+  setError,
+  resetProjectState,
+} = projectSlice.actions;
+
+export default projectSlice.reducer;
+
+===== src\App.jsx =====
+
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import axios from 'axios';
+
+// Shared Components & Auth
+import Layout from './components/shared/layout.jsx';
+import Login from './components/Auth/login.jsx';
+import Signup from './components/Auth/Signup.jsx';
+import ProtectedRoute from './ProtectedRoutes.jsx';
+import PublicRoute from './PublicRoute.jsx';
+import PublicProjectDetail from "./pages/Homepage/PublicProjectDetail.jsx";
+
+// Pages
+import HomePage from '../pages/Homepage/homepage.jsx';
+import Overview from '../pages/user/Overview/Overview.jsx';
+import Discover from '../pages/user/Discover/Discover.jsx';
+import ProjectList from '../pages/user/MyProjects/ProjectList.jsx';
+import Dashboard from '../pages/user/Dashboard/Dashboard.jsx';
+import Messages from '../pages/user/Messages/Messages.jsx';
+import Profile from '../pages/user/Profile/Profile.jsx';
+import Notifications from '../pages/user/Notifications/Notifications.jsx';
+import CollaborationRequests from '../pages/user/CollaborationRequests/CollaborationRequests.jsx';
+import SavedProjects from '../pages/user/SavedProjects/SavedProjects.jsx';
+
+// Admin console
+import AdminOverview from '../pages/user/AdminOverview/AdminOverview.jsx';
+import { AdminLayout, ProjectsPage, UsersPage } from '../pages/user/AdminOverview/AdminConsole.jsx';
+
+// Clean API base URL
+const API_BASE = (import.meta.env.VITE_API_BASE || 'https://nexus-backend-fbcotg.fly.dev/api').replace(/\/+$/, '');
+
+export default function App() {
+  const dispatch = useDispatch();
+  const { isAuthenticated, user, token } = useSelector((state) => state.user);
+
+  useEffect(() => {
+    const fetchBadgeCounts = async () => {
+      try {
+        const response = await axios.get(`${API_BASE}/messages/counts`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.data?.success) {
+          dispatch({
+            type: 'user/setBadgeCounts',
+            payload: {
+              unreadMessages: response.data.unreadMessages ?? 0,
+              pendingRequests: response.data.pendingRequests ?? 0,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching badge counts:', error);
+      }
+    };
+
+    if (isAuthenticated && token) {
+      fetchBadgeCounts();
+    }
+  }, [isAuthenticated, token, dispatch]);
+
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/projects/:id" element={<PublicProjectDetail />} />
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+
+      {/* Admin Routes (left nav: Overview, Review queue, Projects, Users) */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<AdminOverview />} />
+        <Route path="review" element={<AdminOverview />} />
+        <Route path="projects" element={<ProjectsPage />} />
+        <Route path="users" element={<UsersPage />} />
+      </Route>
+
+      {/* Protected User Routes */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/user" element={<Overview />} />
+        <Route path="/overview" element={<Overview />} />
+        <Route path="/discover" element={<Discover />} />
+        <Route path="/my-projects" element={<ProjectList />} />
+        <Route path="/saved-projects" element={<SavedProjects />} />
+        <Route path="/requests" element={<CollaborationRequests />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/profile" element={<Profile />} />
+      </Route>
+
+      {/* Fallback */}
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to={isAuthenticated ? (user?.role === 'admin' ? '/admin' : '/overview') : '/'}
+            replace
+          />
+        }
+      />
+    </Routes>
+  );
+}
+
+===== src\components\shared\ProjectDetailCard.jsx =====
+
+import React, { useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import CollaborationRequestModal from '../../../pages/user/CollaborationRequests/collaborationRequestModal';
+
+const ProjectDetailCard = ({ project, currentUserId, onBackToProjects, isSaved, onToggleSave, onRequestSuccess }) => {
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const navigate = useNavigate();
+
+  if (!project) return null;
+
+  // Backend Flags derived from project object
+  const isMyProject = Boolean(project.isOwner) || Number(project.user_id) === Number(currentUserId);
+  const alreadyRequested = Boolean(project.hasRequested);
+
+  // ðŸŸ¢ FIX: collaborationStatus ab backend se aata hai (pending_admin | approved | rejected | null)
+  // "Message owner" button sirf tab dikhega jab admin ne request approve ki ho.
+  const collaborationStatus = project.collaborationStatus || (alreadyRequested ? 'pending_admin' : null);
+  const isApproved = collaborationStatus === 'approved';
+  const isRejected = collaborationStatus === 'rejected';
+  const isPending = collaborationStatus === 'pending_admin';
+
+  // Parse tags if they are stringified JSON
+  const parsedTags = typeof project.tags === 'string'
+    ? JSON.parse(project.tags || '[]')
+    : (project.tags || []);
+
+  // Handler to navigate directly to Messages page with owner + project details
+  const handleMessageOwnerClick = () => {
+    const ownerId = project.owner_id || project.user_id;
+    const ownerName = project.owner_name || project.ownerName || project.user?.name || 'Project Owner';
+
+    navigate('/messages', {
+      state: {
+        selectedUserId: ownerId,
+        selectedUserName: ownerName,
+        // ðŸŸ¢ FIX: these two were missing, which made Messages.jsx build a
+        // conversation with projectId = undefined. Every fetch for that
+        // conversation's history then hit GET /api/messages/undefined/:id
+        // and 404'd. A chat here is ALWAYS about this specific project,
+        // so its id/title must travel along with the owner's id.
+        selectedProjectId: project.id,
+        selectedProjectTitle: project.title,
+      },
+    });
+  };
+
+  return (
+    <div className="w-full max-w-4xl mx-auto p-2 sm:p-4">
+      {/* Back Button */}
+      <button
+        type="button"
+        onClick={onBackToProjects}
+        className="flex items-center gap-2 text-xs font-semibold text-[#0f9f59] hover:text-[#0d8a4e] transition-colors cursor-pointer mb-6"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back to projects</span>
+      </button>
+
+      {/* Main Card */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm">
+        {/* Category Badge */}
+        <span className="inline-block px-3.5 py-1.5 rounded-full bg-[#e8f5e9] text-[#0f9f59] text-xs font-bold tracking-wide mb-4">
+          {project.category || project.industry || 'Project'}
+        </span>
+
+        {/* Title & Description */}
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+          {project.title}
+        </h1>
+        <p className="text-xs sm:text-sm text-slate-500 mt-2 max-w-2xl leading-relaxed">
+          {project.description}
+        </p>
+
+        {/* Tags */}
+        {parsedTags.length > 0 && (
+          <div className="flex flex-wrap gap-2 my-6">
+            {parsedTags.map((tag, index) => (
+              <span
+                key={index}
+                className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-6 py-6 border-t border-slate-100 my-6">
+          <div>
+            <p className="text-lg sm:text-xl font-bold text-slate-900">{project.stage || 'N/A'}</p>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">Stage</p>
+          </div>
+          <div>
+            <p className="text-lg sm:text-xl font-bold text-slate-900">{project.country || project.location || 'N/A'}</p>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">Location</p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          {/* Dynamic Collaboration Request Button */}
+          {isMyProject ? (
+            <button
+              type="button"
+              disabled
+              className="px-5 py-2.5 bg-slate-100 text-slate-400 text-xs font-semibold rounded-xl cursor-not-allowed"
+            >
+              Your Own Project
+            </button>
+          ) : isApproved ? (
+            <button
+              type="button"
+              disabled
+              className="px-5 py-2.5 bg-emerald-50 text-[#0f9f59] border border-emerald-200 text-xs font-semibold rounded-xl cursor-not-allowed flex items-center gap-1"
+            >
+              âœ“ Request Accepted
+            </button>
+          ) : isRejected ? (
+            <button
+              type="button"
+              disabled
+              className="px-5 py-2.5 bg-red-50 text-red-500 border border-red-200 text-xs font-semibold rounded-xl cursor-not-allowed flex items-center gap-1"
+            >
+              âœ• Request Rejected
+            </button>
+          ) : isPending ? (
+            <button
+              type="button"
+              disabled
+              className="px-5 py-2.5 bg-amber-50 text-amber-600 border border-amber-200 text-xs font-semibold rounded-xl cursor-not-allowed flex items-center gap-1"
+            >
+              â³ Request Sent
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsRequestModalOpen(true)}
+              className="px-5 py-2.5 bg-[#0f9f59] hover:bg-[#0d8a4e] text-white text-xs font-semibold rounded-xl transition-all shadow-sm cursor-pointer"
+            >
+              Request collaboration
+            </button>
+          )}
+
+          {/* Save Project Button */}
+          <button
+            type="button"
+            onClick={onToggleSave}
+            className={`px-5 py-2.5 border text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+              isSaved
+                ? 'bg-emerald-50 border-emerald-200 text-[#0f9f59]'
+                : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+            }`}
+          >
+            {isSaved ? 'Saved' : 'Save project'}
+          </button>
+
+          {/* Message Owner Button â€” ðŸŸ¢ Updated with Router Navigation */}
+          {!isMyProject && isApproved && (
+            <button
+              type="button"
+              onClick={handleMessageOwnerClick}
+              className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+            >
+              Message owner
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Collaboration Request Modal */}
+      <CollaborationRequestModal
+        isOpen={isRequestModalOpen}
+        onClose={() => setIsRequestModalOpen(false)}
+        project={{ ...project, isOwner: isMyProject, hasRequested: alreadyRequested }}
+        onRequestSent={() => {
+          if (onRequestSuccess) onRequestSuccess();
+        }}
+      />
+    </div>
+  );
+};
+
+export default ProjectDetailCard;

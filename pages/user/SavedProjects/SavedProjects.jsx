@@ -1,7 +1,26 @@
 import React, { useState } from 'react';
 import { Bookmark, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import FeaturedBadge from '../../../src/components/shared/FeaturedBadge';
 import ProjectDetailCard from '../../../src/components/shared/ProjectDetailCard';
 import { useGetSavedProjects, useToggleSaveProject } from "@/api/client/projects";
+
+const STORAGE_KEY = 'nexus_saved_projects';
+
+const syncLocalSavedStorage = (projectId) => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const updated = parsed.filter((item) =>
+        typeof item === 'object' && item !== null ? item.id !== projectId : item !== projectId
+      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    }
+  } catch {
+    // Ignore storage read/write errors
+  }
+};
 
 export default function SavedProjects() {
   const [selectedProject, setSelectedProject] = useState(null);
@@ -26,7 +45,25 @@ export default function SavedProjects() {
 
   const handleToggleSave = (projectOrId) => {
     const project_id = typeof projectOrId === 'object' ? projectOrId.id : projectOrId;
-    toggleSave.mutate({ project_id, isSaved: true });
+    if (!project_id) return;
+
+    syncLocalSavedStorage(project_id);
+    toggleSave.mutate(
+      { project_id, isSaved: true },
+      {
+        onSuccess: () => {
+          if (selectedProject?.id === project_id) {
+            setSelectedProject(null);
+          }
+        },
+      }
+    );
+  };
+
+  const handleCardClick = (e, project) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+    e.preventDefault();
+    setSelectedProject(project);
   };
 
   if (selectedProject) {
@@ -42,7 +79,7 @@ export default function SavedProjects() {
 
   return (
     <div className="min-h-screen bg-white font-sans">
-      <div className="p-8 md:p-10 space-y-8 max-w-7xl">
+      <div className="p-4 sm:p-8 md:p-10 space-y-8 max-w-7xl">
         <div className="space-y-1">
           <span className="text-[11px] font-extrabold text-[#00a664] tracking-wider uppercase">PROJECT NEXUS</span>
           <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Saved Projects</h1>
@@ -73,54 +110,81 @@ export default function SavedProjects() {
           ) : savedProjects.length > 0 ? (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {savedProjects.map((project) => (
-                  <div
-                    key={project.id}
-                    onClick={() => setSelectedProject(project)}
-                    className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-5 cursor-pointer group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="bg-emerald-50 text-[#00a664] text-xs font-semibold px-3 py-1 rounded-full">
-                        {project.category}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); handleToggleSave(project.id); }}
-                        className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1"
-                        title="Remove from saved"
-                      >
-                        <Bookmark className="w-5 h-5 fill-[#00a664] text-[#00a664]" />
-                      </button>
-                    </div>
+                {savedProjects.map((project) => {
+                  const isFeatured = Number(project.is_featured) === 1;
+                  const stageLabel = project.stage === 'Growth' ? 'Scaling' : (project.stage || 'N/A');
+                  const locationLabel = project.country || project.location || '';
 
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-bold text-slate-900 group-hover:text-[#00a664] transition-colors">{project.title}</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">{project.description}</p>
-                    </div>
+                  return (
+                    <a
+                      key={project.id}
+                      href={`/projects/${project.id}`}
+                      onClick={(e) => handleCardClick(e, project)}
+                      className={`bg-white border rounded-2xl p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-5 cursor-pointer group min-w-0 ${
+                        isFeatured ? 'border-amber-300 ring-1 ring-amber-100' : 'border-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="bg-emerald-50 text-[#00a664] text-xs font-semibold px-3 py-1 rounded-full">
+                            {project.category || project.industry || 'General'}
+                          </span>
+                          <FeaturedBadge show={isFeatured} />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleToggleSave(project.id);
+                          }}
+                          className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1 shrink-0"
+                          title="Remove from saved"
+                        >
+                          <Bookmark className="w-5 h-5 fill-[#00a664] text-[#00a664]" />
+                        </button>
+                      </div>
 
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {(project.tags || []).map((tag, i) => (
-                        <span key={i} className="bg-slate-50 text-slate-500 text-[11px] font-medium px-2.5 py-1 rounded-md">{tag}</span>
-                      ))}
-                    </div>
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-bold text-slate-900 group-hover:text-[#00a664] transition-colors break-words">
+                          {project.title}
+                        </h3>
+                        <p className="text-xs text-slate-400 leading-relaxed line-clamp-3 break-words">
+                          {project.description}
+                        </p>
+                      </div>
 
-                    <div className="pt-4 border-t border-slate-50 flex items-center justify-between text-xs text-slate-400">
-                      <span>{project.stage} · {project.country || project.location}</span>
-                      <span className="font-bold text-[#00a664]"></span>
-                    </div>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {(project.tags || []).map((tag, i) => (
+                          <span key={i} className="bg-slate-50 text-slate-500 text-[11px] font-medium px-2.5 py-1 rounded-md">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
 
-                    {!project.isOwner && (
-                      <button
-                        type="button"
-                        disabled={project.hasRequested}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-full text-xs font-semibold py-2 rounded-xl bg-[#0f9f59] text-white disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
-                      >
-                        {project.hasRequested ? 'Request sent' : 'Request Collaboration'}
-                      </button>
-                    )}
-                  </div>
-                ))}
+                      <div className="pt-4 border-t border-slate-50 flex items-center justify-between text-xs text-slate-400">
+                        <span className="truncate">
+                          {stageLabel}
+                          {locationLabel ? ` · ${locationLabel}` : ''}
+                        </span>
+                      </div>
+
+                      {!project.isOwner && (
+                        <button
+                          type="button"
+                          disabled={project.hasRequested}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          className="w-full text-xs font-semibold py-2 rounded-xl bg-[#0f9f59] text-white disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
+                        >
+                          {project.hasRequested ? 'Request sent' : 'Request Collaboration'}
+                        </button>
+                      )}
+                    </a>
+                  );
+                })}
               </div>
 
               {pagination.totalPages > 1 && (
