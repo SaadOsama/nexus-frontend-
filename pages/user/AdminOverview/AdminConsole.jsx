@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { WaitingChip } from './AdminProjectDetail.jsx';
 import {
   LayoutDashboard,
   ClipboardList,
@@ -280,6 +281,14 @@ export function ProjectsPage() {
   }, [dq, status]);
   useEffect(load, [load]);
 
+  // Review queue: pending first, oldest submission at the top. Other statuses keep the server order.
+  const isPending = (p) => String(p.status || '').startsWith('pending');
+  const queueTime = (p) => new Date(p.submitted_at || p.submittedAt || p.created_at || 0).getTime();
+  const queue = [...rows].sort((a, b) => {
+    if (isPending(a) !== isPending(b)) return isPending(a) ? -1 : 1;
+    return isPending(a) ? queueTime(a) - queueTime(b) : 0;
+  });
+
   const unpublish = async () => {
     setBusy(true);
     try {
@@ -328,7 +337,7 @@ export function ProjectsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((p) => (
+              {queue.map((p) => (
                 <tr key={p.id} className="border-t border-slate-100 transition-colors hover:bg-emerald-50/30">
                   <td className="max-w-[240px] px-4 py-3 font-semibold text-slate-900">
                     <div className="line-clamp-2 break-words">{p.title}</div>
@@ -344,7 +353,10 @@ export function ProjectsPage() {
                   <td className="px-4 py-3 text-slate-600">{p.industry || '-'}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-slate-600">{p.stage || '-'}</td>
                   <td className="px-4 py-3">
-                    <Badge cls={statusStyle(p.status)}>{statusLabel(p.status)}</Badge>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge cls={statusStyle(p.status)}>{statusLabel(p.status)}</Badge>
+                      <WaitingChip project={p} />
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -363,7 +375,7 @@ export function ProjectsPage() {
                         to={`/projects/${p.id}`}
                         className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-[#0f9f59] transition-all hover:bg-emerald-50"
                       >
-                        <Eye className="h-3.5 w-3.5" /> View
+                        <Eye className="h-3.5 w-3.5" /> {isPending(p) ? 'Review' : 'View'}
                       </Link>
                       {p.status === 'approved' && (
                         <button
